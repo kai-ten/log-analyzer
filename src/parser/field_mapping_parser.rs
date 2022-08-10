@@ -1,3 +1,0 @@
-struct field_mapping {
-    
-}

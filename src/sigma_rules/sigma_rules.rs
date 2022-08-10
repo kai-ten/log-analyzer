@@ -2,17 +2,7 @@ use std::collections::BTreeMap;
 use std::io::BufReader;
 use serde::{Serialize, Deserialize};
 use serde_yaml::{Mapping, Value};
-
-// #[derive(Debug)]
-// enum DetectionType<T> {
-//     Int(i64),
-//     Float(f64),
-//     String(String),
-//     Boolean(bool),
-//     DetectionMap(HashMap<T, T>),
-//     DetectionList(Vec<T>),
-//     None,
-// }
+use crate::utils::yml_file::{self, read};
 
 #[derive(Debug)]
 enum RequiredFields {
@@ -56,26 +46,14 @@ pub struct SigmaRule {
 
 impl SigmaRule {
 
-    pub fn read_yml() -> Result<(), Box<dyn std::error::Error>> {
-
-        let file = std::fs::File::open("test/assets/proc_access_win_mimikatz_through_winrm.yml")?;
-        let buf_reader = BufReader::new(file);
-        let de_yml = serde_yaml::Deserializer::from_reader(buf_reader);
-        let yml_mapping = Value::deserialize(de_yml)?;
-
-        if yml_mapping.is_mapping() {
-            // println!("YES! ITS MAPPING = {:?}", yml_mapping);
-            let ok = SigmaRule::build_sigma_rule(&yml_mapping); // this should be moved out with an abstracting class over top
-        } else {
-            // Return exception and continue, not valid yml
-        }
-
-        Ok(())
-    }
-
     // fn is_map() {}
     //     fn contains_list() {}
     //     fn contains_string(){}
+
+    // This adds all of the rules in the config/rules folder upon initialization
+    fn add_rules() {
+        let de_yml = read();
+    }
 
     fn build_sigma_rule(yml_mapping: &Value) -> Option<SigmaRule> {
         dbg!("{:?}", yml_mapping);
@@ -136,7 +114,7 @@ mod tests {
 
     #[test]
     fn return_yml_as_string() {
-        let test = SigmaRule::read_yml().unwrap();
+        let test = Nice();
 
         // println!("{:?}", test);
         // println!("{}", test.title)
