@@ -15,9 +15,11 @@ use serde_yaml::{Mapping, Value};
 // }
 
 #[derive(Debug)]
-enum SigmaOption<T> {
-    Some(T),
-    None,
+enum RequiredFields {
+    title,
+    logSource,
+    detection,
+    condition,
 }
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
@@ -63,31 +65,45 @@ impl SigmaRule {
 
         if yml_mapping.is_mapping() {
             // println!("YES! ITS MAPPING = {:?}", yml_mapping);
-            let ok = SigmaRule::build_sigma_rule(&yml_mapping);
+            let ok = SigmaRule::build_sigma_rule(&yml_mapping); // this should be moved out with an abstracting class over top
         } else {
-            // Return exception and continue
+            // Return exception and continue, not valid yml
         }
 
         Ok(())
     }
+
+    // fn is_map() {}
+    //     fn contains_list() {}
+    //     fn contains_string(){}
 
     fn build_sigma_rule(yml_mapping: &Value) -> Option<SigmaRule> {
         dbg!("{:?}", yml_mapping);
 
         // dbg!("okok = {:?}", yml_mapping.get("logsource")?.get("service")?.as_str());
 
-        let okok:SigmaOption<String> = SigmaOption::Some(yml_mapping.get("logsource")?.get("service")?.as_str()?.to_string());
-        dbg!("THIS = {:?}", okok);
+        dbg!("SDLK");
+        let nice = yml_mapping.get("logsource")?.get("service");
+        // if let true = nice.is_none() {
+        //     println!("WOOO");
+        // } else {
+        //     println!("NOOO");
+        // }
+
+
+        // dbg!("THIS = {:?}", nice);
 
 
         let logsource = Logsource {
             category: Some(yml_mapping.get("logsource")?.get("category")?.as_str()?.to_string()),
-            service: Some(yml_mapping.get("logsource")?.get("service")?.as_str()?.to_string()),
+            service: Some("".to_string()),
             product: Some(yml_mapping.get("logsource")?.get("product")?.as_str()?.to_string()),
         };
 
         let rule = SigmaRule {
-            title: yml_mapping.get("title")?.as_str()?.to_string(),
+            title: {
+                yml_mapping.get("title")?.as_str()?.to_string()
+            },
             id: Some(yml_mapping.get("id")?.as_str()?.to_string()),
             status: Some(yml_mapping.get("status")?.as_str()?.to_string()),
             description: Some("".to_string()),
@@ -99,11 +115,17 @@ impl SigmaRule {
             detections: Default::default(),
             fields: Some(vec![]),
             falsepositives: Some(vec![]),
-            level: Some("".to_string())
+            level: Some("".to_string()),
         };
 
         println!("rule = {:?}", rule);
         Some(rule)
+    }
+
+    fn is_none() -> bool {
+
+
+        return false;
     }
 
 }
