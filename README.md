@@ -1,5 +1,10 @@
 # CyberVISOR Log Analysis
 
+## Run the app
+
+- cargo run
+- RUST_BACKTRACE=1 cargo test -- --show-output
+
 ## Inspiration:
 
 - https://github.com/SigmaHQ/sigma
