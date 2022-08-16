@@ -1,40 +1,91 @@
 use std::collections::BTreeMap;
+use std::fs::File;
 use std::io::BufReader;
 use anyhow::Error;
 use serde::{Serialize, Deserialize};
-use serde_yaml::{Mapping, Value};
+use serde::de::IntoDeserializer;
+use serde_yaml::{Deserializer, Mapping, Number, Value};
 use crate::yml::{self, deserialize_yml, is_yml};
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
-struct Logsource {
-    category: Option<String>,
-    product: Option<String>,
-    service: Option<String>,
-}
-
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
-struct Detection {
-    name: Option<String>,           // nuances about selection, other names (like filter), and condition
-    value: Option<BTreeMap<String, Vec<Detection>>>,
-}
-
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
+#[serde(default)]
 pub struct SigmaRule {
+    #[serde(default)]
     title: String,
-    id: Option<String>,
-    status: Option<String>,
-    description: Option<String>,
-    references: Option<Vec<String>>,
-    tags: Option<Vec<String>>,
-    authors: Option<String>,
-    date: Option<String>,
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    status: String,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    references: Vec<String>,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    authors: String,
+    #[serde(default)]
+    date: String,
+    #[serde(default)]
     logsource: Logsource,
-    detections: Option<Vec<Detection>>,
-    fields: Option<Vec<String>>,
-    falsepositives: Option<Vec<String>>,
-    level: Option<String>,
+    #[serde(default)]
+    detection: BTreeMap<String, DetectionTypes>,
+    #[serde(default)]
+    fields: String,
+    #[serde(default)]
+    falsepositives: Vec<String>,
+    #[serde(default)]
+    level: String,
 }
+
+#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
+struct Logsource {
+    #[serde(default)]
+    category: String,
+    #[serde(default)]
+    product: String,
+    #[serde(default)]
+    service: String,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(untagged)]
+enum DetectionTypes {
+    // #[serde(deserialize_with = "from_non_string_type")]
+    String(String),
+    Sequence(Vec<DetectionTypesTwo>),
+    Mapping(Option<BTreeMap<String, DetectionTypesTwo>>),
+}
+
+
+// The next goal is to build a struct in between each enum, so that when the enum matches we can parse the next layer of objects
+#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
+struct DTypesString {
+    #[serde(default)]
+    value: String
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(untagged)]
+enum DetectionTypesTwo {
+    // #[serde(deserialize_with = "from_non_string_type")]
+    Number(u32),
+    String(String),
+    Sequence(Vec<String>),
+    Mapping(BTreeMap<String, DetectionTypesThree>),
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(untagged)]
+enum DetectionTypesThree {
+    // #[serde(deserialize_with = "from_non_string_type")]
+    Number(u32),
+    String(String),
+    Sequence(Vec<String>),
+    Mapping(BTreeMap<String, String>),
+}
+
 
 impl SigmaRule {
 
@@ -43,84 +94,54 @@ impl SigmaRule {
     //     fn contains_list() {}
     //     fn contains_string(){}
 
+    pub fn output_format() -> Result<(), Error> {
+
+        let de_yml = deserialize_yml("test/assets/hard.yml".to_string())?;
+        let yml_value = Value::deserialize(de_yml)?;
+
+
+        dbg!("{:?}", yml_value);
+        Ok(())
+        // let sigmaRule = SigmaRule::build_sigma_rule(&yml_value);
+    }
+
+
     // This adds all of the rules in the config/rules folder upon initialization
-    pub fn add_rules() -> Result<(), Error> {
-        for file in WalkDir::new("config/rules").into_iter().filter_map(|file| file.ok()) {
+    pub fn add_rules<'de>(rulesDir: String) -> std::io::Result<()> {
+        for file in WalkDir::new(rulesDir).into_iter().filter_map(|file| file.ok()) {
             if file.metadata().unwrap().is_file() && is_yml(&file) {
-
-                let de_yml = deserialize_yml(file.path().display().to_string())?;
-                let yml_value = Value::deserialize(de_yml)?;
-
-                println!("{:?}", yml_value.is_mapping());
-                if let true = yml_value.is_mapping() {
-                    let sigmaRule = SigmaRule::build_sigma_rule(&yml_value);
-                } else {
-                    continue;
-                }
-
-
+                let file = File::open(file.path().display().to_string())?;
+                let reader = BufReader::new(file);
+                // If an error in reading the yaml, error output to console and then continue() to next file
+                let de_yml = serde_yaml::from_reader::<BufReader<File>, SigmaRule>(reader);
+                println!("WOW = {:?}", de_yml.unwrap());
             }
         }
+
         Ok(())
     }
 
-    fn build_sigma_rule(yml_value: &Value) -> Result<(), Error> {
-        // dbg!("okok = {:?}", yml_mapping.get("logsource")?.get("service")?.as_str());
-
-        dbg!("SDLK");
-        let yml_mapping = yml_value.as_mapping().unwrap();
-        println!("N = {:?}", yml_mapping);
-
-        // println!("OK = {:?}", yml_mapping.get("logsource")?);
-        // println!("bool = {:?}", yml_mapping.get("logsource")?.is_mapping());
-
-        // let b = if let Some(b) = ... { b } else { ... };
-        // let logsource = yml_mapping.get("logsource")?;
-        // let category = logsource.get("category").unwrap_or(&Value::Null);
-        // let service = logsource.get("service").unwrap_or(&Value::Null);
-        // println!("OMG = {:?}", category.as_str());
-        // if let false = category.is_null() {category.as_str()?.to_string()};
-
-        // println!("OKDS = {:?}", service.as_str());
-        // println!("NICE = {:?}", category.as_str());
-
-        // let logsource = Logsource {
-        //     category: Some(yml_mapping.get("logsource")?.get("category")?.as_str()?.to_string()),
-        //     service: Some("".to_string()),
-        //     product: Some(yml_mapping.get("logsource")?.get("product")?.as_str()?.to_string()),
-        // };
-
-        // let rule = SigmaRule {
-        //     title: {
-        //         yml_mapping.get("title")?.as_str()?.to_string()
-        //     },
-        //     id: Some(yml_mapping.get("id")?.as_str()?.to_string()),
-        //     status: Some(yml_mapping.get("status")?.as_str()?.to_string()),
-        //     description: Some("".to_string()),
-        //     references: Some(vec![]),
-        //     tags: Some(vec![]),
-        //     authors: Some("".to_string()),
-        //     date: Some("".to_string()),
-        //     logsource,
-        //     detections: Default::default(),
-        //     fields: Some(vec![]),
-        //     falsepositives: Some(vec![]),
-        //     level: Some("".to_string()),
-        // };
-
-        // println!("rule = {:?}", rule);
-        Ok(())
-    }
-
-    fn is_none(field: Option<&Value>) -> bool {
-
-        if field.is_none() {
-            false
-        } else {
-            true
-        }
-
-    }
+    // fn from_non_string_type<'de, D>() -> Result<Vec<String>, D::Error>
+    //     where
+    //         D: IntoDeserializer<'de>,
+    // {
+    //     let license_ids: Vec<&str> = Deserialize::deserialize(deserializer)?;
+    //
+    //     let mut licenses: Vec<License> = Vec::new();
+    //
+    //     for license_id in license_ids {
+    //         let path = format!("example/licenses/{0}/{0}.yaml", license_id);
+    //         let config = std::fs::File::open(&path)
+    //             .map_err(D::Error::custom)?;
+    //         let mut license: License = serde_yaml::from_reader(&config)
+    //             .map_err(D::Error::custom)?;
+    //         license.id = license_id.to_string();
+    //         println!("{:?}", &license);
+    //         licenses.push(license);
+    //     }
+    //
+    //     Ok(licenses)
+    // }
 
 }
 
@@ -128,5 +149,22 @@ impl SigmaRule {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_simple_detections_yml() {
+        let yml = SigmaRule::add_rules("test/assets/simple.yml".to_string());
+        assert_eq!(yml.is_ok(), true, "Simple yml returns as SigmaRule struct")
+    }
+
+    #[test]
+    fn test_intermediate_detections_yml() {
+        let yml = SigmaRule::add_rules("test/assets/intermediate.yml".to_string());
+        assert_eq!(yml.is_ok(), true, "Intermediate yml returns as SigmaRule struct")
+    }
+
+    #[test]
+    fn test_hard_detections_yml() {
+        let yml = SigmaRule::add_rules("test/assets/hard.yml".to_string());
+        assert_eq!(yml.is_ok(), true, "Hard yml returns as SigmaRule struct")
+    }
 
 }

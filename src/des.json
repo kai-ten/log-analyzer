@@ -1,0 +1,62 @@
+{
+  "status": "stable",
+  "description": "Detects usage of mimikatz through WinRM protocol by monitoring access to lsass process by wsmprovhost.exe.",
+  "author": "Patryk Prauze - ING Tech",
+  "title": "Mimikatz through Windows Remote Management",
+  "logsource": {
+    "category": "process_access",
+    "product": "windows"
+  },
+  "modified": "2021/06/21",
+  "detection": {
+    "filter": {
+      "EventID": [
+        456,
+        876
+      ]
+    },
+    "selection": [
+      {
+        "TargetImage|endswith": [
+          "\\lsass.exe",
+          "test.exe"
+        ],
+        "SourceImage": "C:\\Windows\\system32\\wsmprovhost.exe"
+      }
+    ],
+    "selection1": [
+      "EVIL",
+      "Service"
+    ],
+    "condition": "selection and not filter",
+    "selection2": [
+      {
+        "TargetImage|endswith": [
+          "\\lsass.exe",
+          "test.exe"
+        ]
+      },
+      {
+        "SourceImage": "C:\\Windows\\system32\\wsmprovhost.exe"
+      }
+    ]
+  },
+  "references": [
+    "https://pentestlab.blog/2018/05/15/lateral-movement-winrm/"
+  ],
+  "date": "2019/05/20",
+  "falsepositives": [
+    "Unlikely"
+  ],
+  "level": "high",
+  "id": "aa35a627-33fb-4d04-a165-d33b4afca3e8",
+  "tags": [
+    "attack.credential_access",
+    "attack.execution",
+    "attack.t1003.001",
+    "attack.t1059.001",
+    "attack.lateral_movement",
+    "attack.t1021.006",
+    "attack.s0002"
+  ]
+}

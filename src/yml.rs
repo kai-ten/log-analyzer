@@ -22,33 +22,33 @@ mod test_yml_deserialization {
     use walkdir::WalkDir;
     use super::*;
 
-    #[test]
-    fn test_de_yml() {
-        let yaml = deserialize_yml("test/assets/simple.yml".to_string());
-        assert_eq!(yaml.is_ok(), true, "Yml returns as a mapping")
-    }
-
-    #[test]
-    fn de_yml_file_that_does_not_exist() {
-        let yaml = deserialize_yml("test/assets/should_not_exist.yml".to_string());
-        assert_eq!(yaml.is_err(), true, "File does not exist")
-    }
-
-    #[test]
-    fn is_yml_file() {
-        for file in WalkDir::new("test/assets/simple.yml").into_iter().filter_map(|file| file.ok()) {
-            let is_yml = is_yml(&file);
-            assert_eq!(is_yml, true, "Is a yml file")
-        };
-    }
-
-    #[test]
-    fn is_not_yml_file() {
-        for file in WalkDir::new("test/assets/is_not_yml_file/").into_iter().filter_map(|file| file.ok()) {
-            let is_yml = is_yml(&file);
-            assert_eq!(is_yml, false, "Is not a yml file")
-        };
-    }
+    // #[test]
+    // fn test_de_yml() {
+    //     let yaml = deserialize_yml("test/assets/simple.yml".to_string());
+    //     assert_eq!(yaml.is_ok(), true, "Yml returns as a mapping")
+    // }
+    //
+    // #[test]
+    // fn de_yml_file_that_does_not_exist() {
+    //     let yaml = deserialize_yml("test/assets/should_not_exist.yml".to_string());
+    //     assert_eq!(yaml.is_err(), true, "File does not exist")
+    // }
+    //
+    // #[test]
+    // fn is_yml_file() {
+    //     for file in WalkDir::new("test/assets/simple.yml").into_iter().filter_map(|file| file.ok()) {
+    //         let is_yml = is_yml(&file);
+    //         assert_eq!(is_yml, true, "Is a yml file")
+    //     };
+    // }
+    //
+    // #[test]
+    // fn is_not_yml_file() {
+    //     for file in WalkDir::new("test/assets/is_not_yml_file/").into_iter().filter_map(|file| file.ok()) {
+    //         let is_yml = is_yml(&file);
+    //         assert_eq!(is_yml, false, "Is not a yml file")
+    //     };
+    // }
 }
 
 
