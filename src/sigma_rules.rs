@@ -3,13 +3,15 @@ use std::fs::File;
 use std::io::BufReader;
 use anyhow::Error;
 use serde::{Serialize, Deserialize};
-use serde::de::IntoDeserializer;
-use serde_yaml::{Deserializer, Mapping, Number, Value};
-use crate::yml::{self, deserialize_yml, is_yml};
-use walkdir::{DirEntry, WalkDir};
+use serde_yaml::{Number, Value};
+use crate::yml::{deserialize_yml, is_yml};
+use walkdir::WalkDir;
+
+// , deny_unknown_fields
+// Handle the way to join arbitrary fields / maps and then flatten
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct SigmaRule {
     #[serde(default)]
     title: String,
@@ -36,7 +38,7 @@ pub struct SigmaRule {
     #[serde(default)]
     detection: BTreeMap<String, DetectionTypes>,
     #[serde(default)]
-    fields: String,
+    fields: Vec<String>,
     #[serde(default)]
     falsepositives: Vec<String>,
     #[serde(default)]
@@ -58,6 +60,8 @@ struct Logsource {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(untagged)]
 enum DetectionTypes {
+    #[serde(rename = "Number")]
+    Boolean(bool),
     #[serde(rename = "Number")]
     Number(Number),
     #[serde(rename = "String")]
@@ -84,8 +88,8 @@ impl SigmaRule {
 
 
     // This adds all of the rules in the config/rules folder upon initialization
-    pub fn add_rules<'de>(rulesDir: String) -> std::io::Result<()> {
-        for file in WalkDir::new(rulesDir).into_iter().filter_map(|file| file.ok()) {
+    pub fn add_rules<'de>(rules_dir: String) -> std::io::Result<()> {
+        for file in WalkDir::new(rules_dir).into_iter().filter_map(|file| file.ok()) {
             if file.metadata().unwrap().is_file() && is_yml(&file) {
                 println!("FILE: {:?}", file.path().display());
                 let file = File::open(file.path().display().to_string())?;
@@ -98,28 +102,6 @@ impl SigmaRule {
 
         Ok(())
     }
-
-    // fn from_non_string_type<'de, D>() -> Result<Vec<String>, D::Error>
-    //     where
-    //         D: IntoDeserializer<'de>,
-    // {
-    //     let license_ids: Vec<&str> = Deserialize::deserialize(deserializer)?;
-    //
-    //     let mut licenses: Vec<License> = Vec::new();
-    //
-    //     for license_id in license_ids {
-    //         let path = format!("example/licenses/{0}/{0}.yaml", license_id);
-    //         let config = std::fs::File::open(&path)
-    //             .map_err(D::Error::custom)?;
-    //         let mut license: License = serde_yaml::from_reader(&config)
-    //             .map_err(D::Error::custom)?;
-    //         license.id = license_id.to_string();
-    //         println!("{:?}", &license);
-    //         licenses.push(license);
-    //     }
-    //
-    //     Ok(licenses)
-    // }
 
 }
 
