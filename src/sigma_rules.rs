@@ -9,7 +9,7 @@ use crate::yml::{self, deserialize_yml, is_yml};
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct SigmaRule {
     #[serde(default)]
     title: String,
@@ -24,11 +24,15 @@ pub struct SigmaRule {
     #[serde(default)]
     tags: Vec<String>,
     #[serde(default)]
-    authors: String,
+    author: String,
     #[serde(default)]
     date: String,
     #[serde(default)]
+    modified: String,
+    #[serde(default)]
     logsource: Logsource,
+    #[serde(default)]
+    related: Vec<DetectionTypes>,
     #[serde(default)]
     detection: BTreeMap<String, DetectionTypes>,
     #[serde(default)]
@@ -47,52 +51,25 @@ struct Logsource {
     product: String,
     #[serde(default)]
     service: String,
+    #[serde(default)]
+    definition: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(untagged)]
 enum DetectionTypes {
-    // #[serde(deserialize_with = "from_non_string_type")]
+    #[serde(rename = "Number")]
+    Number(Number),
+    #[serde(rename = "String")]
     String(String),
-    Sequence(Vec<DetectionTypesTwo>),
-    Mapping(Option<BTreeMap<String, DetectionTypesTwo>>),
-}
-
-
-// The next goal is to build a struct in between each enum, so that when the enum matches we can parse the next layer of objects
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
-struct DTypesString {
-    #[serde(default)]
-    value: String
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-#[serde(untagged)]
-enum DetectionTypesTwo {
-    // #[serde(deserialize_with = "from_non_string_type")]
-    Number(u32),
-    String(String),
-    Sequence(Vec<String>),
-    Mapping(BTreeMap<String, DetectionTypesThree>),
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-#[serde(untagged)]
-enum DetectionTypesThree {
-    // #[serde(deserialize_with = "from_non_string_type")]
-    Number(u32),
-    String(String),
-    Sequence(Vec<String>),
-    Mapping(BTreeMap<String, String>),
+    #[serde(rename = "Sequence")]
+    Sequence(Vec<DetectionTypes>),
+    #[serde(rename = "Mapping")]
+    Mapping(Option<BTreeMap<String, DetectionTypes>>),
 }
 
 
 impl SigmaRule {
-
-    // When parsing the de yml mapping, think of this nested logic
-    // fn is_map() {}
-    //     fn contains_list() {}
-    //     fn contains_string(){}
 
     pub fn output_format() -> Result<(), Error> {
 
@@ -110,6 +87,7 @@ impl SigmaRule {
     pub fn add_rules<'de>(rulesDir: String) -> std::io::Result<()> {
         for file in WalkDir::new(rulesDir).into_iter().filter_map(|file| file.ok()) {
             if file.metadata().unwrap().is_file() && is_yml(&file) {
+                println!("FILE: {:?}", file.path().display());
                 let file = File::open(file.path().display().to_string())?;
                 let reader = BufReader::new(file);
                 // If an error in reading the yaml, error output to console and then continue() to next file
@@ -164,6 +142,12 @@ mod tests {
     #[test]
     fn test_hard_detections_yml() {
         let yml = SigmaRule::add_rules("test/assets/hard.yml".to_string());
+        assert_eq!(yml.is_ok(), true, "Hard yml returns as SigmaRule struct")
+    }
+
+    #[test]
+    fn test_extra_hard_detections_yml() {
+        let yml = SigmaRule::add_rules("config/rules".to_string());
         assert_eq!(yml.is_ok(), true, "Hard yml returns as SigmaRule struct")
     }
 
