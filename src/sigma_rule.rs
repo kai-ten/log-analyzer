@@ -91,7 +91,7 @@ impl SigmaRule {
         Ok(sigma_rules)
     }
 
-    pub fn read_rule_file(file_path: &String) -> Result<SigmaRule, Error> {
+    fn read_rule_file(file_path: &String) -> Result<SigmaRule, Error> {
         let file = File::open(file_path)?;
         let reader = BufReader::new(file);
         let de_yml = serde_yaml::from_reader::<BufReader<File>, SigmaRule>(reader).unwrap();
