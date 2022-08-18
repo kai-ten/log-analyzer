@@ -5,8 +5,6 @@ mod yml;
 
 use anyhow::Error;
 use sigma_rule::SigmaRule;
-use std::fs::File;
-use std::io::prelude::*;
 
 // Main should...
 // N/A    0. Read a config file in case path is different than defaults (for rules, field mappings, kafka/http/etc props)
@@ -17,7 +15,7 @@ use std::io::prelude::*;
 // N/A    5. Within loop, begin async concurrent processing of sigma rules in memory
 
 fn main() -> Result<(), Error> {
-    let sigma_rules = SigmaRule::store_sigma_rules("config/rules".to_string())?;
+    let _sigma_rules = SigmaRule::store_sigma_rules("config/rules".to_string())?;
     Ok(())
 }
 

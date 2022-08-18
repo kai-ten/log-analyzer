@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::BufReader;
 use anyhow::Error;
 use serde::{Serialize, Deserialize};
-use serde_yaml::{Number, Value};
 use crate::yml::is_yml;
 use walkdir::WalkDir;
 
