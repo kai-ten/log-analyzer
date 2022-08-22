@@ -1,4 +1,4 @@
-title:
+title: Mimikatz through Windows Remote Management
 id: aa35a627-33fb-4d04-a165-d33b4afca3e8
 description: Detects usage of mimikatz through WinRM protocol by monitoring access to lsass process by wsmprovhost.exe.
 references:
@@ -10,11 +10,6 @@ modified: 2021/06/21
 logsource:
   category: process_access
   product: windows
-detection:
-  selection1:
-    - EVIL
-    - Service
-  condition: selection1
 tags:
   - attack.credential_access
   - attack.execution

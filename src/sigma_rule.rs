@@ -10,52 +10,52 @@ use walkdir::WalkDir;
 #[serde(default)]               // deny_unknown_fields in the future? currently unable to parse custom fields defined by individuals
 pub struct SigmaRule {
     #[serde(default)]
-    title: String,
+    pub(crate) title: String,
     #[serde(default)]
-    id: String,
+    pub(crate) id: String,
     #[serde(default)]
-    status: String,
+    pub(crate) status: String,
     #[serde(default)]
-    description: String,
+    pub(crate) description: String,
     #[serde(default)]
-    references: Vec<String>,
+    pub(crate) references: Vec<String>,
     #[serde(default)]
-    tags: Vec<String>,
+    pub(crate) tags: Vec<String>,
     #[serde(default)]
-    author: String,
+    pub(crate) author: String,
     #[serde(default)]
-    date: String,
+    pub(crate) date: String,
     #[serde(default)]
-    modified: String,
+    pub(crate) modified: String,
     #[serde(default)]
-    logsource: Logsource,
+    pub(crate) logsource: Logsource,
     #[serde(default)]
-    related: Vec<DetectionTypes>,
+    pub(crate) related: Vec<DetectionTypes>,
     #[serde(default)]
-    detection: BTreeMap<String, DetectionTypes>,
+    pub(crate) detection: BTreeMap<String, DetectionTypes>,
     #[serde(default)]
-    fields: Vec<String>,
+    pub(crate) fields: Vec<String>,
     #[serde(default)]
-    falsepositives: Vec<String>,
+    pub(crate) falsepositives: Vec<String>,
     #[serde(default)]
-    level: String,
+    pub(crate) level: String,
 }
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
 struct Logsource {
     #[serde(default)]
-    category: String,
+    pub(crate) category: String,
     #[serde(default)]
-    product: String,
+    pub(crate) product: String,
     #[serde(default)]
-    service: String,
+    pub(crate) service: String,
     #[serde(default)]
-    definition: String,
+    pub(crate) definition: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(untagged)]
-enum DetectionTypes {
+pub enum DetectionTypes {
     #[serde(rename = "Number")]
     Boolean(bool),
     #[serde(rename = "Number")]
@@ -71,14 +71,22 @@ enum DetectionTypes {
 
 impl SigmaRule {
 
-    pub fn store_sigma_rules<'de>(rules_dir: String) -> Result<Vec<SigmaRule>, Error> {
+    pub fn process_sigma_rules<'de>(rules_dir: String) -> Result<Vec<SigmaRule>, Error> {
         let mut sigma_rules = Vec::new();
         for file in WalkDir::new(rules_dir).into_iter().filter_map(|file| file.ok()) {
             if file.metadata().unwrap().is_file() && is_yml(&file) {
                 let file_path = &file.path().display().to_string();
                 let sigma_rule = SigmaRule::read_rule_file(file_path);
+
                 match sigma_rule {
-                    Ok(rule) => sigma_rules.push(rule),
+                    Ok(rule) => {
+                        if SigmaRule::initial_rule_validation(&rule) {
+                            sigma_rules.push(rule)
+                        } else {
+                            println!("Rule is invalid. Please check required fields at https://github.com/SigmaHQ/sigma/wiki/Specification for {:?}.", file_path);
+                            continue;
+                        }
+                    },
                     Err(error) => {
                         println!("Error loading rule {:?}. - {:?}", file_path, error);
                         continue; // skip to the next rule
@@ -98,6 +106,15 @@ impl SigmaRule {
 
         Ok(de_yml)
     }
+
+    // https://github.com/SigmaHQ/sigma/wiki/Specification#value-modifiers
+    fn initial_rule_validation(rule: &SigmaRule) -> bool {
+        if rule.title == "" || rule.id == "" || rule.detection.is_empty() {
+            return false;
+        }
+
+        return true;
+    }
 }
 
 
@@ -107,9 +124,9 @@ mod tests {
 
     #[test]
     fn read_rule_yml_file_and_validate_title() -> Result<(), Error> {
-        let yml = SigmaRule::read_rule_file(&"test/assets/mimikatz.yml".to_string());
-        assert_eq!(yml.is_ok(), true, "yml returns as SigmaRule struct");
-        assert_eq!(yml?.title, "Mimikatz through Windows Remote Management", "Validate title");
+        let rule = SigmaRule::read_rule_file(&"test/assets/mimikatz.yml".to_string());
+        assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
+        assert_eq!(rule?.title, "Mimikatz through Windows Remote Management", "Validate title");
         Ok(())
     }
 
@@ -117,17 +134,57 @@ mod tests {
     // Read more about rule formatting here - https://github.com/SigmaHQ/sigma/wiki/Specification
     #[test]
     fn read_rule_yml_file_handles_invalid_rule() -> Result<(), Error> {
-        let yml = SigmaRule::read_rule_file(&"test/assets/invalid_rule.yml".to_string());
-        assert_eq!(yml.is_ok(), true, "yml returns as SigmaRule struct");
-        assert_eq!(yml?.title, "", "Validate title is empty string");
+        let rule = SigmaRule::read_rule_file(&"test/assets/invalid_rules/invalid_title.yml".to_string());
+        assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
+        assert_eq!(rule?.title, "", "Validate title is empty string");
         Ok(())
     }
 
     #[test]
     fn retrieve_all_sigma_yml_rules_in_dir() -> Result<(), Error>  {
-        let sigma_rules = SigmaRule::store_sigma_rules("test/assets/do_not_modify_folder".to_string());
+        let sigma_rules = SigmaRule::process_sigma_rules("test/assets/do_not_modify_folder".to_string());
         assert_eq!(sigma_rules.is_ok(), true, "Sigma Rule vec is ok");
-        assert_eq!(sigma_rules?.len(), 2, "Confirm length of rules in vec is equal to two.");
+        assert_eq!(sigma_rules?.len(), 1, "Confirm length of rules in vec is equal to one, invalid rule should NOT be stored.");
+        Ok(())
+    }
+
+    #[test]
+    fn valid_rule_initial_validation() -> Result<(), Error>  {
+        let rule = SigmaRule::read_rule_file(&"test/assets/mimikatz.yml".to_string());
+        assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
+
+        let is_valid = SigmaRule::initial_rule_validation(&rule.unwrap());
+        assert_eq!(is_valid, true, "Sigma rule is valid");
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_title_rule_initial_validation() -> Result<(), Error>  {
+        let rule = SigmaRule::read_rule_file(&"test/assets/invalid_rules/invalid_title.yml".to_string());
+        assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
+
+        let is_invalid = SigmaRule::initial_rule_validation(&rule.unwrap());
+        assert_eq!(is_invalid, false, "Sigma rule is invalid due to the title");
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_id_rule_initial_validation() -> Result<(), Error>  {
+        let rule = SigmaRule::read_rule_file(&"test/assets/invalid_rules/invalid_id.yml".to_string());
+        assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
+
+        let is_invalid = SigmaRule::initial_rule_validation(&rule.unwrap());
+        assert_eq!(is_invalid, false, "Sigma rule is invalid  due to the id");
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_detection_rule_initial_validation() -> Result<(), Error>  {
+        let rule = SigmaRule::read_rule_file(&"test/assets/invalid_rules/invalid_detection.yml".to_string());
+        assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
+
+        let is_invalid = SigmaRule::initial_rule_validation(&rule.unwrap());
+        assert_eq!(is_invalid, false, "Sigma rule is invalid due to the detection");
         Ok(())
     }
 
