@@ -85,27 +85,18 @@ impl Detection {
             let rule_id = rule.id;
             let detection = rule.detection;
 
-            // if detection.contains_key("condition") {
-            //     // parse condition method
-            //     println!("{:?}", detection.get_key_value("condition"));
-            //     println!("{:?}", detection.get("condition"));
-            //     let condition = detection.get("condition");
-            //     let condition_value = Detection::read_condition(condition);
-            //
-            //     if condition_value == "" {
-            //         info!("Condition returned as empty string, this rule has been skipped - {:?}", );
-            //         continue;
-            //     }
-            // } else {
-            //     info!("Detection must have a condition, this rule has been skipped - {:?}", rule);
-            //     continue;
-            // }
+            // match on process_condition, if Some then keep processing, if None then continue;
+            let ok = match Detection::process_condition(rule_id, detection) {
+                Some(_) => (),
+                None => {continue;}
+            };
+
 
             // for (k, v) in detection {
             //     println!("Detections - {:?} - {:?}", k, v);
             //
             // }
-            break;
+            break; // this break is only here for testing
         }
 
         Ok(())
@@ -114,19 +105,21 @@ impl Detection {
     fn process_condition(rule_id: String, detection: BTreeMap<String, DetectionTypes>) -> Option<()> {
         let a = if detection.contains_key("condition") {
             // parse condition method
-            println!("{:?}", detection.get_key_value("condition"));
-            println!("{:?}", detection.get("condition"));
+            info!("{:?}", detection.get_key_value("condition"));
+            info!("{:?}", detection.get("condition"));
             let condition = detection.get("condition");
             let condition_value = Detection::read_condition(condition);
 
-            if condition_value == "" {
+            if condition_value != "" {
+                Some(())
+            } else {
                 info!("Condition returned as empty string, this rule has been skipped - {:?}", rule_id);
-                Some(None)
+                None
             }
 
         } else {
             info!("Detection must have a condition, this rule has been skipped - {:?}", rule_id);
-            Some(None)
+            None
         };
 
         Some(())

@@ -84,12 +84,12 @@ impl SigmaRule {
                         if SigmaRule::initial_rule_validation(&rule) {
                             sigma_rules.push(rule)
                         } else {
-                            info!("Rule is invalid. Please check required fields at https://github.com/SigmaHQ/sigma/wiki/Specification for {:?}.", file_path);
+                            info!("Rule is invalid. Please check required fields at https://github.com/SigmaHQ/sigma/wiki/Specification for {}.", file_path);
                             continue;
                         }
                     },
                     Err(error) => {
-                        info!("Error loading rule {:?}. - {:?}", file_path, error);
+                        info!("Error loading rule {}. - {}", file_path, error);
                         continue; // skip to the next rule
                     }
                 }
@@ -103,7 +103,7 @@ impl SigmaRule {
         let file = File::open(file_path)?;
         let reader = BufReader::new(file);
         let de_yml = serde_yaml::from_reader::<BufReader<File>, SigmaRule>(reader).unwrap();
-        // println!(" = {:?}", de_yml);
+        // info!(" = {:?}", de_yml);
 
         Ok(de_yml)
     }
