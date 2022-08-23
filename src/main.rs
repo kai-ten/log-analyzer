@@ -2,9 +2,11 @@ extern crate core;
 
 mod sigma_rule;
 mod yml;
+mod detection;
 
 use anyhow::Error;
 use sigma_rule::SigmaRule;
+use crate::detection::Detection;
 
 // Main should...
 // N/A    0. Read a config file in case path is different than defaults (for rules, field mappings, kafka/http/etc props)
@@ -15,7 +17,9 @@ use sigma_rule::SigmaRule;
 // N/A    5. Within loop, begin async concurrent processing of sigma rules in memory
 
 fn main() -> Result<(), Error> {
-    let _sigma_rules = SigmaRule::store_sigma_rules("config/rules".to_string())?;
+    let sigma_rules = SigmaRule::process_sigma_rules("config/rules".to_string())?;
+    let nice = Detection::process_detection(sigma_rules);
+
     Ok(())
 }
 

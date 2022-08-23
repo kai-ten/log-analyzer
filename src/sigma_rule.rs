@@ -5,6 +5,7 @@ use anyhow::Error;
 use serde::{Serialize, Deserialize};
 use crate::yml::is_yml;
 use walkdir::WalkDir;
+use log::info;
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]               // deny_unknown_fields in the future? currently unable to parse custom fields defined by individuals
@@ -83,12 +84,12 @@ impl SigmaRule {
                         if SigmaRule::initial_rule_validation(&rule) {
                             sigma_rules.push(rule)
                         } else {
-                            println!("Rule is invalid. Please check required fields at https://github.com/SigmaHQ/sigma/wiki/Specification for {:?}.", file_path);
+                            info!("Rule is invalid. Please check required fields at https://github.com/SigmaHQ/sigma/wiki/Specification for {:?}.", file_path);
                             continue;
                         }
                     },
                     Err(error) => {
-                        println!("Error loading rule {:?}. - {:?}", file_path, error);
+                        info!("Error loading rule {:?}. - {:?}", file_path, error);
                         continue; // skip to the next rule
                     }
                 }
