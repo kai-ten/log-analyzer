@@ -1,152 +1,237 @@
-
-
-// Search identifiers represent rules to apply to the log - maps or lists
-
-
-// Load the detections here
-// How to compare the detections with the logs that are coming in?????
-
-/*
-THE RULES FOR CREATING A DETECTION:
-Create rules based on the following.
-
-a. Get the Condition(s) of the detection
-    I. Must parse Condition with these rules..
-    II. AND, OR
-    III. all of <search_identifier> / 1 of <search_identifier> - make list into an and
-    IV. all of them / 1 of them - applies to all search identifiers
-    V. all of <search_identifier_pattern> / 1 of <search_identifier_pattern>
-    VI. NOT
-    VII. Brackets to join - selectino1 and (ketwords1 or keywords2)
-    VIII. If pipe |, return that we don't support deprecation and will be using Sigma Correlations
-b. The condition will build the querying that takes place for the log
-*/
-
-/*
-THE RULES FOR PROCESSING DETECTIONS:
-1. The log data format should be json, so must use serde_json to deserialize, set value to string, lowercase, then compare with detections
-2. For each detection...
-    a. Get the Condition(s) of the detection
-        I. Must parse Condition with these rules..
-        II. AND, OR
-        III. all of <search_identifier> / 1 of <search_identifier> - make list into an and
-        IV. all of them / 1 of them - applies to all search identifiers
-        V. all of <search_identifier_pattern> / 1 of <search_identifier_pattern>
-        VI. NOT
-        VII. Brackets to join - selectino1 and (ketwords1 or keywords2)
-        VIII. If pipe |, return that we don't support deprecation and will be using Sigma Correlations
-     b. The condition will build the querying that takes place for the log
-*/
-
-use std::collections::BTreeMap;
-use anyhow::Error;
-use log::info;
+use crate::parsers::operator_parsers::{not_parser, parser};
 use crate::sigma_rule::DetectionTypes;
 use crate::SigmaRule;
+use anyhow::Error;
+use log::info;
+use nom::branch::alt;
+use nom::IResult;
+use std::collections::BTreeMap;
+use std::vec;
 
-pub struct Detection {
-    rule_title: String,
-    rule_id: String,
+// for the whole rule
+
+/// Contains the detections for all rules.
+/// This struct is compared to incoming logs to determine if there is a match or not.
+#[derive(Debug)]
+struct Detections {
+    detections: Vec<Detection>,
 }
 
-struct Condition {
-    search_ids: Vec<SearchID>,
-    alert: bool,
+/// Contains the conditions for a single Detection.
+#[derive(Debug)]
+struct Detection {
+    conditions: Option<BTreeMap<CONDITIONAL, Vec<Condition>>>,
 }
 
-struct SearchID {
-    string_value: String,
-    vec_value: Vec<String>,
-    operator: String,
-    negation: bool,
-    modifiers: Vec<String>
+/// Contains the condition and any nested conditions.
+/// search_identifier will contain Some(String) if a detection key is matched.
+/// search_identifier will be None in the event that parentheses follow a CONDITIONAL.
+///     i.e. Selection and not (Keywords or Filter)
+/// nested_detections will contain Some(BTreeMap<CONDITIONAL, Vec<Condition>>) in the event that parentheses follow a CONDITIONAL.
+/// nested_detections will be None if a detection key is matched.
+#[derive(Debug, PartialEq)]
+pub struct Condition {
+    search_identifier: Option<String>,
+    is_negated: bool,
+    nested_detections: Option<BTreeMap<CONDITIONAL, Vec<Condition>>>,
 }
 
+// Operator? - can these include x/all of
+#[derive(Debug, PartialEq)]
+enum CONDITIONAL {
+    AND,
+    OR,
+}
 
-
-const AND: &'static str = "and";
-const OR: &'static str = "or";
-
+// const AND: &'static str = "and";
+// const OR: &'static str = "or";
 
 /*
 Create detection based on the condition(s)
 */
-impl Detection {
 
-    // check if condition exists first
-    // then parse condition + all rules
-    pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
-        for rule in sigma_rules {
-            // println!("Detection - {:?}", rule.detection);
-            // println!("{:?}", rule.detection.contains_key("condition"));
-
-            // selection and not filter
-            // Must figure out how to handle the logic of the search identifiers
-            let rule_id = rule.id;
-            let detection = rule.detection;
-
-            // match on process_condition, if Some then keep processing, if None then continue;
-            let ok = match Detection::process_condition(rule_id, detection) {
-                Some(_) => (),
-                None => {continue;}
-            };
-
-
-            // for (k, v) in detection {
-            //     println!("Detections - {:?} - {:?}", k, v);
-            //
-            // }
-            break; // this break is only here for testing
-        }
-
-        Ok(())
+impl Detections {
+    fn new() -> Detections {
+        Detections { detections: vec![] }
     }
 
-    fn process_condition(rule_id: String, detection: BTreeMap<String, DetectionTypes>) -> Option<()> {
-        let a = if detection.contains_key("condition") {
-            // parse condition method
-            info!("{:?}", detection.get_key_value("condition"));
-            info!("{:?}", detection.get("condition"));
-            let condition = detection.get("condition");
-            let condition_value = Detection::read_condition(condition);
-
-            if condition_value != "" {
-                Some(())
-            } else {
-                info!("Condition returned as empty string, this rule has been skipped - {:?}", rule_id);
-                None
-            }
-
-        } else {
-            info!("Detection must have a condition, this rule has been skipped - {:?}", rule_id);
-            None
-        };
-
-        Some(())
-    }
-
-    fn read_condition(condition: Option<&DetectionTypes>) -> &str  {
-        let condition_value = match condition.unwrap() {
-            DetectionTypes::Boolean(condition) => stringify!(condition),
-            DetectionTypes::Number(condition) => stringify!(condition),
-            DetectionTypes::String(condition) => condition as &str,
-            DetectionTypes::Sequence(_) => "",
-            DetectionTypes::Mapping(_) => ""
-        };
-
-        condition_value
-    }
-
-    fn validate_condition_value() {
-
-    }
-
+    fn update() -> () {}
 }
 
+impl Detection {
+    fn new() -> Detection {
+        Detection { conditions: None }
+    }
+
+    // fn modify(&mut self) -> Detection {
+    //     Detection {
+    //         search_identifier,
+    //         negation,
+    //         nested_detections
+    //     }
+    // }
+}
+
+impl Condition {
+    pub fn new() -> Condition {
+        Condition {
+            search_identifier: None,
+            is_negated: false,
+            nested_detections: None,
+        }
+    }
+
+    // fn update(condition: &mut Condition) -> Condition {
+    //     condition.search_identifier =
+    // }
+
+    // fn modify(&mut self) -> Detection {
+    //     Detection {
+    //         search_identifier,
+    //         negation,
+    //         nested_detections
+    //     }
+    // }
+}
+
+pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
+    let Detections = Detections::new();
+
+    for rule in sigma_rules {
+        let rule_id = rule.id;
+        let detection = rule.detection;
+        let detectionsss = detection.keys();
+        println!("$$$$$${:?}", detectionsss); // ["condition", "filter", "selection", "selection1", "selection2"]
+
+        println!("{:?}", detection);
+
+        let condition = match process_condition(rule_id, detection) {
+            Some(condition) => condition,
+            None => {
+                // TODO
+                // skips to the next rule in the for loop, maybe return message here instead of in process_condition
+                continue;
+            }
+        };
+
+        let mut detection = Detection::new();
+
+        // let mut remaining_condition = condition.as_str();
+        // while remaining_condition.is_empty() {
+        //     let ok = parse_condition(remaining_condition);
+        //     let conditionz = match ok {
+        //         Ok(wow) => {
+        //             remaining_condition = wow.0;
+        //             wow.1
+        //         }
+        //         Err(err) => {}
+        //     };
+        // }
+    }
+
+    Ok(())
+}
+
+fn parse_condition(remaining_condition: &str) -> Result<(&str, Condition), Error> {
+    let mut condition = Condition::new();
+    let mut remaining_condition = remaining_condition;
+    // how to create this condition and store it in the detection 'right above it'
+    // the btree? yep
+    // i think i know how
+    // Detections.detections.ins
+    println!("Top Remaining Condition: {}", remaining_condition);
+    // remaining_condition = "";
+
+    // if parser(remaining_condition).is_ok() {
+    //     remaining_condition = "";
+    // }
+
+    println!("{:?}", condition);
+
+    match parser(remaining_condition) {
+        Ok((remaining, returned)) => {
+            remaining_condition = remaining;
+
+            // alt(not_parser())
+
+            // let test2 = parser(remaining_condition);
+            // match test2 {
+            //     Ok((remaining, returned)) => {}
+            //     Err(..) => {}
+            // }
+            println!("rem = {:?}, ret = {:?}", remaining, returned);
+            // parser(remaining)
+        }
+        Err(..) => {}
+    }
+
+    Ok((remaining_condition, condition))
+}
+
+fn process_condition(
+    rule_id: String,
+    detection: BTreeMap<String, DetectionTypes>,
+) -> Option<String> {
+    // TODO
+    // Since an Option is being returned, I am unsure if None would trigger the else or not.
+    // Must write test eventually and change to match if None doesn't trigger the else statement
+    let condition_value = if detection.contains_key("condition") {
+        let condition = detection.get("condition");
+        let condition_value = read_condition(condition).to_string();
+
+        if condition_value != "" {
+            // maybe call parse_condition here and then return a Condition struct?
+            Some(condition_value)
+        } else {
+            info!(
+                "Condition returned as empty string, this rule has been skipped - {:?}",
+                rule_id
+            );
+            None
+        }
+    } else {
+        info!(
+            "Detection must have a condition, this rule has been skipped - {:?}",
+            rule_id
+        );
+        None
+    };
+
+    condition_value
+}
+
+/// Conditions are returned by the yml processor as the Enum DetectionTypes.
+/// This method extracts the type that the value is stored in and stringifies the value.
+fn read_condition(condition: Option<&DetectionTypes>) -> &str {
+    let condition_value = match condition.unwrap() {
+        DetectionTypes::Boolean(condition) => stringify!(condition),
+        DetectionTypes::Number(condition) => stringify!(condition),
+        DetectionTypes::String(condition) => condition as &str,
+        //TODO - Sequence should be supported as defined in the spec, a list of conditions joins as OR conditionals
+        DetectionTypes::Sequence(_) => "",
+        DetectionTypes::Mapping(_) => "",
+    };
+
+    condition_value
+}
+
+fn initialize_parser(parsed_result: &str) {
+    if parsed_result.len() > 1 {}
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_condition_test() {
+        let _ = parse_condition("Not Selection and (Filter or Keyword)");
+    }
+
+    #[test]
+    fn initialize_parser_logic() {
+        initialize_parser("ok");
+    }
 
     // #[test]
     // fn testa90() {
@@ -164,8 +249,5 @@ mod tests {
     // }
 
     #[test]
-    fn read_string_condition() {
-
-    }
-
+    fn read_string_condition() {}
 }
