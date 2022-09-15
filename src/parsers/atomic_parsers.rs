@@ -1,15 +1,18 @@
-use crate::detection::Condition;
+use std::collections::BTreeMap;
+use crate::detection::{Condition, OPERATOR};
 use crate::parsers::take_until_unbalanced::take_until_unbalanced;
 use nom::branch::alt;
-use nom::bytes::complete::{is_not, tag, tag_no_case, take_until};
+use nom::bytes::complete::{is_not, tag, tag_no_case, take_until, take_while};
 use nom::character::complete::none_of;
 use nom::character::{is_alphabetic, is_alphanumeric};
-use nom::combinator::rest;
+use nom::combinator::{rest, value};
 use nom::error::ErrorKind::{Char, Tag};
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::sequence::delimited;
-use nom::{Finish, IResult};
+use nom::{AsBytes, Finish, InputLength, InputTake, IResult, Parser};
+use crate::parsers::input::ConditionInput;
+use crate::parsers::operator_parsers::Span;
 
 pub fn parens(input: &str) -> IResult<&str, &str> {
     delimited(tag("("), take_until_unbalanced('(', ')'), tag(")"))(input.trim())
@@ -47,21 +50,61 @@ pub fn pipe(input: &str) -> IResult<&str, &str> {
     tag_no_case("|")(input.trim())
 }
 
-/// Returns search identifiers within a condition (take_until(" ")), and at the end of a condition (rest of string)
 /// TODO: Support wild card names - handled in Detection creation?
+/// Returns search identifiers within a condition (take_until(" ")), and at the end of a condition (rest of string)
+/// Returns the remaining string to parse, the result that was parsed, and the condition being updated.
+/// A successful response indicates that the condition is completed and ready to be stored in a Detection struct
+/// A failure indicates invalid input, or potentially a missed parsing use-case.
 pub fn search_identifiers(
-    input: &str,
-    condition: Condition,
-) -> Result<(&str, &str, Condition), Error<&str>> {
-    let condition: Condition = condition;
-    let sid: Result<(&str, &str), E> = alt((take_until(" "), rest))(input.trim()).finish();
+    input: &str
+) -> IResult<&str, &str> {
+    let sid = alt((take_until(" "), rest))(input.trim());
 
-    match sid {
+    let sid_result = match sid {
         Ok(parsed_sid) => parsed_sid,
         Err(e) => return Err(e),
-    }
+    };
 
-    Ok((ok2.0, ok2.1, condition))
+    Ok((sid_result))
+}
+
+
+
+
+pub fn search_identifiers_practice(
+    input: &str
+) -> IResult<&str, ConditionInput<Condition>> {
+    let mut condition = Condition::new();
+    let result = search_identifiers(input)?;
+
+    condition.parser_result = Some(vec![result.1.to_string()]);
+    condition.search_identifier = Some(result.1.to_string());
+    value(ConditionInput { input: { condition.clone() } }, (take_while(|ch| ch != ' ')))(input.trim())
+}
+
+pub fn not_practice(
+    input: &str
+) -> IResult<&str, ConditionInput<Condition>> {
+
+    let mut condition = Condition::new();
+    let result = and(input)?;
+
+    condition.parser_result = Some(vec![result.1.to_string()]);
+    condition.operator = Some(OPERATOR::AND);
+    value(ConditionInput {input: {condition.clone()}}, tag_no_case("and") )(input.trim())
+}
+
+
+pub fn and_practice(
+    input: &str
+) -> IResult<&str, ConditionInput<Condition>> {
+
+    let mut condition = Condition::new();
+    let result = and(input)?;
+
+    condition.parser_result = Some(vec![result.1.to_string()]);
+    condition.operator = Some(OPERATOR::AND);
+    value(ConditionInput {input: {condition.clone()}}, tag_no_case("and") )(input.trim())
 }
 
 #[cfg(test)]
@@ -71,6 +114,70 @@ mod tests {
     use log::error;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
+
+    #[test]
+    fn and_test_d() {
+        let result = and_practice("and not filter");
+        assert_eq!(result, Ok((
+            " not filter",
+            ConditionInput {
+                input: Condition {
+                    parser_result: Some(vec!["and".to_string()]),
+                    is_negated: None,
+                    operator: Some(OPERATOR::AND),
+                    search_identifier: None,
+                    nested_detections: None
+                }
+            }
+        )));
+    }
+
+    #[test]
+    fn search_identifier_fun() {
+
+
+        let result = search_identifiers_practice("Selection");
+        assert_eq!(result, Ok((
+            "",
+            ConditionInput {
+                input: Condition {
+                    parser_result: Some(vec!["Selection".to_string()]),
+                    is_negated: None,
+                    operator: None,
+                    search_identifier: Some("Selection".to_string()),
+                    nested_detections: None
+                }
+            }
+        )));
+
+        let result = search_identifiers_practice("Selection and not Filter");
+        assert_eq!(result, Ok((
+            " and not Filter",
+            ConditionInput {
+                input: Condition {
+                    parser_result: Some(vec!["Selection".to_string()]),
+                    is_negated: None,
+                    operator: None,
+                    search_identifier: Some("Selection".to_string()),
+                    nested_detections: None
+                }
+            }
+        )));
+
+        let result = search_identifiers_practice("");
+        assert_eq!(result, Ok((
+            "",
+            ConditionInput {
+                input: Condition {
+                    parser_result: Some(vec!["".to_string()]),
+                    is_negated: None,
+                    operator: None,
+                    search_identifier: Some("".to_string()),
+                    nested_detections: None
+                }
+            }
+        )));
+    }
 
     #[test]
     fn parens_input_nested() {
@@ -219,19 +326,16 @@ mod tests {
             Ok((" and not Filter", "Selection"))
         );
 
-        let end_of_condition_parser_result = search_identifiers(" Events "); // but that wasn't being supported with only the first match
+        let end_of_condition_parser_result = search_identifiers(" Events ");
         assert_eq!(end_of_condition_parser_result, Ok(("", "Events")));
 
-        let empty_string_parser_result = search_identifiers(""); // but that wasn't being supported with only the first match
+        let empty_string_parser_result = search_identifiers("");
         assert_eq!(
             empty_string_parser_result,
-            Err(nom::Err::Error(Error::from_error_kind(
-                "Empty string cannot be a search identifier.",
-                Char
-            )))
+            Ok(("", ""))
         );
 
-        let empty_string_parser_result = search_identifiers("    "); // but that wasn't being supported with only the first match
+        let empty_string_parser_result = search_identifiers("    ");
         assert_eq!(empty_string_parser_result, Ok(("", "")));
     }
 }

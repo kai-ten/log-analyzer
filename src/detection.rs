@@ -1,4 +1,4 @@
-use crate::parsers::operator_parsers::{not_parser, parser};
+use crate::parsers::operator_parsers::{new_parser, not_parser, parser};
 use crate::sigma_rule::DetectionTypes;
 use crate::SigmaRule;
 use anyhow::Error;
@@ -12,15 +12,15 @@ use std::vec;
 
 /// Contains the detections for all rules.
 /// This struct is compared to incoming logs to determine if there is a match or not.
-#[derive(Debug)]
-struct Detections {
-    detections: Vec<Detection>,
-}
+// #[derive(Clone, Debug, PartialEq)]
+// struct Detections {
+//     detections: Vec<Detection>,
+// }
 
 /// Contains the conditions for a single Detection.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Detection {
-    conditions: Option<BTreeMap<CONDITIONAL, Vec<Condition>>>,
+    conditions: BTreeMap<Option<OPERATOR>, Vec<Condition>>,
 }
 
 /// Contains the condition and any nested conditions.
@@ -29,38 +29,35 @@ struct Detection {
 ///     i.e. Selection and not (Keywords or Filter)
 /// nested_detections will contain Some(BTreeMap<CONDITIONAL, Vec<Condition>>) in the event that parentheses follow a CONDITIONAL.
 /// nested_detections will be None if a detection key is matched.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Condition {
-    search_identifier: Option<String>,
-    is_negated: bool,
-    nested_detections: Option<BTreeMap<CONDITIONAL, Vec<Condition>>>,
+    pub(crate) parser_result: Option<Vec<String>>,
+    pub(crate) is_negated: Option<bool>,
+    pub(crate) operator: Option<OPERATOR>,
+    pub(crate) search_identifier: Option<String>,
+    pub(crate) nested_detections: Option<BTreeMap<Option<OPERATOR>, Vec<Condition>>>,
 }
 
-// Operator? - can these include x/all of
-#[derive(Debug, PartialEq)]
-enum CONDITIONAL {
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum OPERATOR {
     AND,
     OR,
 }
 
-// const AND: &'static str = "and";
-// const OR: &'static str = "or";
-
-/*
-Create detection based on the condition(s)
-*/
-
-impl Detections {
-    fn new() -> Detections {
-        Detections { detections: vec![] }
+impl OPERATOR {
+    fn as_str(&self) -> &'static str {
+        match self {
+            OPERATOR::AND => "and",
+            OPERATOR::OR => "or"
+        }
     }
-
-    fn update() -> () {}
 }
+
 
 impl Detection {
     fn new() -> Detection {
-        Detection { conditions: None }
+        Detection { conditions: BTreeMap::new() }
     }
 
     // fn modify(&mut self) -> Detection {
@@ -75,9 +72,11 @@ impl Detection {
 impl Condition {
     pub fn new() -> Condition {
         Condition {
+            parser_result: None,
             search_identifier: None,
-            is_negated: false,
+            is_negated: None,
             nested_detections: None,
+            operator: None
         }
     }
 
@@ -95,7 +94,9 @@ impl Condition {
 }
 
 pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
-    let Detections = Detections::new();
+    // let Detections = Detections::new();
+
+    let detection = Detection::new();
 
     for rule in sigma_rules {
         let rule_id = rule.id;
@@ -132,42 +133,6 @@ pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
     Ok(())
 }
 
-fn parse_condition(remaining_condition: &str) -> Result<(&str, Condition), Error> {
-    let mut condition = Condition::new();
-    let mut remaining_condition = remaining_condition;
-    // how to create this condition and store it in the detection 'right above it'
-    // the btree? yep
-    // i think i know how
-    // Detections.detections.ins
-    println!("Top Remaining Condition: {}", remaining_condition);
-    // remaining_condition = "";
-
-    // if parser(remaining_condition).is_ok() {
-    //     remaining_condition = "";
-    // }
-
-    println!("{:?}", condition);
-
-    match parser(remaining_condition) {
-        Ok((remaining, returned)) => {
-            remaining_condition = remaining;
-
-            // alt(not_parser())
-
-            // let test2 = parser(remaining_condition);
-            // match test2 {
-            //     Ok((remaining, returned)) => {}
-            //     Err(..) => {}
-            // }
-            println!("rem = {:?}, ret = {:?}", remaining, returned);
-            // parser(remaining)
-        }
-        Err(..) => {}
-    }
-
-    Ok((remaining_condition, condition))
-}
-
 fn process_condition(
     rule_id: String,
     detection: BTreeMap<String, DetectionTypes>,
@@ -200,6 +165,66 @@ fn process_condition(
     condition_value
 }
 
+
+// Ignore process_condition for now, put loop in here and try to complete implementation for recursion
+fn parse_condition(remaining_condition: &str) -> () {
+
+    let mut detection = Detection::new();
+    let mut remaining_condition = remaining_condition;
+
+    println!("Top Remaining Condition: {}", remaining_condition);
+    // remaining_condition = "";
+
+    // if parser(remaining_condition).is_ok() {
+    //     remaining_condition = "";
+    // }
+
+    // println!("{:?}", condition);
+
+    while !remaining_condition.is_empty() {
+
+        let mut condition = Condition::new();
+
+        match new_parser(remaining_condition) {
+            Ok(nice) => {
+                remaining_condition = nice.0;
+
+
+
+                // currently thinking of how to know what to update, when to update, and how to keep the nestings.
+
+
+
+                // alt(not_parser())
+
+                // let test2 = parser(remaining_condition);
+                // match test2 {
+                //     Ok((remaining, returned)) => {}
+                //     Err(..) => {}
+                // }
+                println!("rem = {:?}, ret = {:?}", nice.0, nice.1);
+                // parser(remaining)
+            }
+            Err(..) => {}
+        }
+    }
+
+
+    // Ok((remaining_condition, condition))
+    ()
+}
+
+// Top Remaining Condition: Selection and not Filter
+// Ok((" and not Filter", ConditionInput { input: Condition { parser_result: "Selection", is_negated: None, operator: None, search_identifier: Some("Selection"), nested_detections: None } }))
+// rem = " and not Filter", ret = ConditionInput { input: Condition { parser_result: "Selection", is_negated: None, operator: None, search_identifier: Some("Selection"), nested_detections: None } }
+// Ok((" not Filter", ConditionInput { input: Condition { parser_result: "and", is_negated: None, operator: Some(AND), search_identifier: None, nested_detections: None } }))
+// rem = " not Filter", ret = ConditionInput { input: Condition { parser_result: "and", is_negated: None, operator: Some(AND), search_identifier: None, nested_detections: None } }
+// Ok((" Filter", ConditionInput { input: Condition { parser_result: "not", is_negated: None, operator: None, search_identifier: Some("not"), nested_detections: None } }))
+// rem = " Filter", ret = ConditionInput { input: Condition { parser_result: "not", is_negated: None, operator: None, search_identifier: Some("not"), nested_detections: None } }
+// Ok(("", ConditionInput { input: Condition { parser_result: "Filter", is_negated: None, operator: None, search_identifier: Some("Filter"), nested_detections: None } }))
+// rem = "", ret = ConditionInput { input: Condition { parser_result: "Filter", is_negated: None, operator: None, search_identifier: Some("Filter"), nested_detections: None } }
+// ()
+
 /// Conditions are returned by the yml processor as the Enum DetectionTypes.
 /// This method extracts the type that the value is stored in and stringifies the value.
 fn read_condition(condition: Option<&DetectionTypes>) -> &str {
@@ -223,9 +248,11 @@ fn initialize_parser(parsed_result: &str) {
 mod tests {
     use super::*;
 
+    // start here for current implementation that is being worked on. All code within the fn parse_condition() is relevant
     #[test]
     fn parse_condition_test() {
-        let _ = parse_condition("Not Selection and (Filter or Keyword)");
+        let nice = parse_condition("Selection and not Filter");
+        println!("{:?}", nice);
     }
 
     #[test]

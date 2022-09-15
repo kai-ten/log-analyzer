@@ -1,13 +1,15 @@
 use crate::detection::Condition;
-use crate::parsers::atomic_parsers::{
-    all_of, all_of_them, and, not, one_of, one_of_them, or, parens, pipe, search_identifiers,
-};
+use crate::parsers::atomic_parsers::{all_of, all_of_them, and, and_practice, not, one_of, one_of_them, or, parens, pipe, search_identifiers, search_identifiers_practice};
 use log::warn;
 use nom::branch::alt;
 use nom::error::ErrorKind::Tag;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::{error_position, Finish, IResult};
 use std::borrow::BorrowMut;
+use nom_locate::LocatedSpan;
+use crate::parsers::input::ConditionInput;
+
+pub type Span<'a> = LocatedSpan<&'a Condition>;
 
 /// Parser when parens is a match
 ///
@@ -30,6 +32,20 @@ pub fn parser(input: &str) -> IResult<&str, &str> {
     result
 }
 
+
+pub fn new_parser(input: &str) -> Result<(&str, ConditionInput<Condition>), Error<&str>> {
+
+    let result = alt((
+        and_practice,
+        search_identifiers_practice,
+    ))(input).finish();
+
+    println!("{:?}", result);
+    result
+    // ()
+}
+
+
 /// Parser when not is a match
 pub fn not_parser(input: &str) -> Result<(&str, &str, Condition), Error<&str>> {
     let result: Result<(&str, &str), Error<&str>> =
@@ -37,7 +53,7 @@ pub fn not_parser(input: &str) -> Result<(&str, &str, Condition), Error<&str>> {
 
     let mut condition = Condition::new();
 
-    // udpate here
+    // update here
 
     let ok2 = match result {
         Ok(wow) => wow,
@@ -78,6 +94,12 @@ mod tests {
     //              "condition": String("selection"),
     //              "selection": Sequence([Mapping(Some({"TargetFilename|contains": String("/Library/StartupItems/")})), Mapping(Some({"TargetFilename|endswith": String(".plist")}))])}, fields: [], falsepositives: ["Legitimate administration activities"], level: "low" };
     // }
+
+    #[test]
+    fn test_new_parser() {
+        let test = new_parser("Selection");
+        println!("{:?}", test);
+    }
 
     #[test]
     fn parser_returns_ok_response_for_all_condition_specs() {
