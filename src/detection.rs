@@ -1,4 +1,4 @@
-use crate::parsers::operator_parsers::{new_parser, not_parser, parser};
+use crate::parsers::operator_parsers::parser;
 use crate::sigma_rule::DetectionTypes;
 use crate::SigmaRule;
 use anyhow::Error;
@@ -18,19 +18,17 @@ use std::vec;
 // }
 
 /// Contains the conditions for a single Detection.
+// TODO - Conditions should not be Optional?
 #[derive(Clone, Debug, PartialEq)]
 struct Detection {
-    conditions: BTreeMap<Option<OPERATOR>, Vec<Condition>>,
+    operator: Option<OPERATOR>,
+    conditions: Option<Vec<Condition>>,
 }
 
-/// Contains the condition and any nested conditions.
-/// search_identifier will contain Some(String) if a detection key is matched.
-/// search_identifier will be None in the event that parentheses follow a CONDITIONAL.
-///     i.e. Selection and not (Keywords or Filter)
-/// nested_detections will contain Some(BTreeMap<CONDITIONAL, Vec<Condition>>) in the event that parentheses follow a CONDITIONAL.
-/// nested_detections will be None if a detection key is matched.
+/// Metadata and Fields to compose a Condition.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Condition {
+    pub(crate) parser_type: Option<PARSER_TYPES>,
     pub(crate) parser_result: Option<Vec<String>>,
     pub(crate) is_negated: Option<bool>,
     pub(crate) operator: Option<OPERATOR>,
@@ -38,6 +36,19 @@ pub struct Condition {
     pub(crate) nested_detections: Option<BTreeMap<Option<OPERATOR>, Vec<Condition>>>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum PARSER_TYPES {
+    PARENS,
+    ONE_OF_THEM,
+    ALL_OF_THEM,
+    ONE_OF,
+    ALL_OF,
+    NOT,
+    AND,
+    OR,
+    PIPE,
+    SEARCH_IDENTIFIER,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum OPERATOR {
@@ -57,7 +68,10 @@ impl OPERATOR {
 
 impl Detection {
     fn new() -> Detection {
-        Detection { conditions: BTreeMap::new() }
+        Detection {
+            operator: None,
+            conditions: None,
+        }
     }
 
     // fn modify(&mut self) -> Detection {
@@ -72,6 +86,7 @@ impl Detection {
 impl Condition {
     pub fn new() -> Condition {
         Condition {
+            parser_type: None,
             parser_result: None,
             search_identifier: None,
             is_negated: None,
@@ -167,63 +182,65 @@ fn process_condition(
 
 
 // Ignore process_condition for now, put loop in here and try to complete implementation for recursion
-fn parse_condition(remaining_condition: &str) -> () {
+fn parse_detection(rule_condition: &str) {
 
     let mut detection = Detection::new();
-    let mut remaining_condition = remaining_condition;
+    let mut remaining_condition = rule_condition;
 
-    println!("Top Remaining Condition: {}", remaining_condition);
-    // remaining_condition = "";
-
-    // if parser(remaining_condition).is_ok() {
-    //     remaining_condition = "";
-    // }
-
-    // println!("{:?}", condition);
+    println!("Initial condition: {}", remaining_condition);
 
     while !remaining_condition.is_empty() {
 
-        let mut condition = Condition::new();
+        match parser(remaining_condition) {
+            Ok((remaining, condition)) => { // ConditionInput is changing to ConditionOutput soon, so all refactoring will also standardize naming of param
 
-        match new_parser(remaining_condition) {
-            Ok(nice) => {
-                remaining_condition = nice.0;
+                remaining_condition = remaining;
+                let mut condition_result = Condition::new();
 
+                match condition.parser_type.as_ref().unwrap() {
+                    PARSER_TYPES::PARENS => println!("PARENS"),
+                    PARSER_TYPES::ONE_OF_THEM => println!("ONE_OF_THEM"),
+                    PARSER_TYPES::ALL_OF_THEM => println!("ALL_OF_THEM"),
+                    PARSER_TYPES::ONE_OF => println!("ONE_OF"),
+                    PARSER_TYPES::ALL_OF => println!("ALL_OF"),
+                    PARSER_TYPES::NOT => {
+                        condition_result = condition.input.clone();
+                    },
+                    PARSER_TYPES::AND => {
+                        detection.operator = condition.operator.clone();
+                        condition_result = condition.input.clone();
 
+                        let mut conditions = detection.conditions.unwrap();
+                        conditions.push(condition_result);
+                        detection.conditions = Some(conditions);
+                    },
+                    PARSER_TYPES::OR => {
+                        detection.operator = condition.operator.clone();
+                        condition_result = condition.input.clone();
 
-                // currently thinking of how to know what to update, when to update, and how to keep the nestings.
-
-
-
-                // alt(not_parser())
-
-                // let test2 = parser(remaining_condition);
-                // match test2 {
-                //     Ok((remaining, returned)) => {}
-                //     Err(..) => {}
-                // }
-                println!("rem = {:?}, ret = {:?}", nice.0, nice.1);
-                // parser(remaining)
+                        let mut conditions = detection.conditions.unwrap();
+                        conditions.push(condition_result);
+                        detection.conditions = Some(conditions);
+                    },
+                    PARSER_TYPES::PIPE => println!("PIPE SHOULD RETURN ERROR"),
+                    PARSER_TYPES::SEARCH_IDENTIFIER => {
+                        println!("SEARCH_IDENTIFIER");
+                        detection.conditions = Some(vec![condition.input]);
+                    },
+                    _ => println!("I DONT KNOW YET")
+                }
             }
             Err(..) => {}
         }
     }
 
 
+    println!("DETECTION: {:?}", detection);
     // Ok((remaining_condition, condition))
     ()
 }
 
-// Top Remaining Condition: Selection and not Filter
-// Ok((" and not Filter", ConditionInput { input: Condition { parser_result: "Selection", is_negated: None, operator: None, search_identifier: Some("Selection"), nested_detections: None } }))
-// rem = " and not Filter", ret = ConditionInput { input: Condition { parser_result: "Selection", is_negated: None, operator: None, search_identifier: Some("Selection"), nested_detections: None } }
-// Ok((" not Filter", ConditionInput { input: Condition { parser_result: "and", is_negated: None, operator: Some(AND), search_identifier: None, nested_detections: None } }))
-// rem = " not Filter", ret = ConditionInput { input: Condition { parser_result: "and", is_negated: None, operator: Some(AND), search_identifier: None, nested_detections: None } }
-// Ok((" Filter", ConditionInput { input: Condition { parser_result: "not", is_negated: None, operator: None, search_identifier: Some("not"), nested_detections: None } }))
-// rem = " Filter", ret = ConditionInput { input: Condition { parser_result: "not", is_negated: None, operator: None, search_identifier: Some("not"), nested_detections: None } }
-// Ok(("", ConditionInput { input: Condition { parser_result: "Filter", is_negated: None, operator: None, search_identifier: Some("Filter"), nested_detections: None } }))
-// rem = "", ret = ConditionInput { input: Condition { parser_result: "Filter", is_negated: None, operator: None, search_identifier: Some("Filter"), nested_detections: None } }
-// ()
+
 
 /// Conditions are returned by the yml processor as the Enum DetectionTypes.
 /// This method extracts the type that the value is stored in and stringifies the value.
@@ -248,11 +265,19 @@ fn initialize_parser(parsed_result: &str) {
 mod tests {
     use super::*;
 
-    // start here for current implementation that is being worked on. All code within the fn parse_condition() is relevant
     #[test]
-    fn parse_condition_test() {
-        let nice = parse_condition("Selection and not Filter");
-        println!("{:?}", nice);
+    fn parse_detection_testdd() {
+        let result = parse_detection("Selection");
+        println!("{:?}", result);
+
+        let result = parse_detection("Not Selection");
+        println!("{:?}", result);
+
+        let result = parse_detection("Selection and not Filter");
+        println!("{:?}", result);
+
+        let result = parse_detection("Selection or not Filter");
+        println!("{:?}", result);
     }
 
     #[test]

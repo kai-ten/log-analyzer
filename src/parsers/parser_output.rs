@@ -6,13 +6,13 @@ use std::str::FromStr;
 use nom::Err::{Error, Incomplete};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ConditionInput<T> {
+pub struct ParserOutput<T> {
     pub(crate) input: T
 }
 
-impl<T> ConditionInput<T> {
-    pub fn new(input: T) -> ConditionInput<T> {
-        ConditionInput {
+impl<T> ParserOutput<T> {
+    pub fn new(input: T) -> ParserOutput<T> {
+        ParserOutput {
             input
         }
     }
@@ -22,20 +22,20 @@ impl<T> ConditionInput<T> {
     }
 }
 
-impl<T> core::ops::Deref for ConditionInput<T> {
+impl<T> core::ops::Deref for ParserOutput<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.input
     }
 }
 
-impl<T: AsBytes> ConditionInput<T> {
+impl<T: AsBytes> ParserOutput<T> {
     fn as_bytes(&self) -> &[u8] {
         &self.input.as_bytes()
     }
 }
 
-impl<T: Compare<B>, B: Into<ConditionInput<B>>> Compare<B> for ConditionInput<T> {
+impl<T: Compare<B>, B: Into<ParserOutput<B>>> Compare<B> for ParserOutput<T> {
     #[inline(always)]
     fn compare(&self, t: B) -> CompareResult {
         self.input.compare(t.into().input)
@@ -49,7 +49,7 @@ impl<T: Compare<B>, B: Into<ConditionInput<B>>> Compare<B> for ConditionInput<T>
 
 // #[cfg(feature = "alloc")] ----- TODO - get answer to why is this used in nom_locate
 /// Builds and Returns type ParserInput
-impl<'a, T> ExtendInto for ConditionInput<T>
+impl<'a, T> ExtendInto for ParserOutput<T>
 where
     T: ExtendInto,
 {
@@ -64,7 +64,7 @@ where
     }
 }
 
-impl<T, U> FindSubstring<U> for ConditionInput<T>
+impl<T, U> FindSubstring<U> for ParserOutput<T>
 where
     T: FindSubstring<U>,
 {
@@ -74,13 +74,13 @@ where
     }
 }
 
-impl<T: FindToken<Token>, Token> FindToken<Token> for ConditionInput<T> {
+impl<T: FindToken<Token>, Token> FindToken<Token> for ParserOutput<T> {
     fn find_token(&self, token: Token) -> bool {
         self.input.find_token(token)
     }
 }
 
-impl<'a, T> InputIter for ConditionInput<T>
+impl<'a, T> InputIter for ParserOutput<T>
 where
     T: InputIter,
 {
@@ -109,13 +109,13 @@ where
     }
 }
 
-impl<T: InputLength> InputLength for ConditionInput<T> {
+impl<T: InputLength> InputLength for ParserOutput<T> {
     fn input_len(&self) -> usize {
         self.input.input_len()
     }
 }
 
-impl<T> InputTake for ConditionInput<T>
+impl<T> InputTake for ParserOutput<T>
     where
         Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>>,
 {
@@ -127,7 +127,7 @@ impl<T> InputTake for ConditionInput<T>
     }
 }
 
-impl<T> InputTakeAtPosition for ConditionInput<T>
+impl<T> InputTakeAtPosition for ParserOutput<T>
 where
     T: InputTakeAtPosition + InputLength + InputIter,
     Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>> + Clone,
@@ -194,7 +194,7 @@ where
     }
 }
 
-impl<T> Offset for ConditionInput<T> {
+impl<T> Offset for ParserOutput<T> {
     fn offset(&self, second: &Self) -> usize {
         let fst = self.offset(self);
         let snd = second.offset(second);
@@ -203,14 +203,14 @@ impl<T> Offset for ConditionInput<T> {
     }
 }
 
-impl<R: FromStr,T: ParseTo<R>> ParseTo<R> for ConditionInput<T> {
+impl<R: FromStr,T: ParseTo<R>> ParseTo<R> for ParserOutput<T> {
     #[inline]
     fn parse_to(&self) -> Option<R> {
         self.input.parse_to()
     }
 }
 
-impl<'a, T, R> Slice<R> for ConditionInput<T>
+impl<'a, T, R> Slice<R> for ParserOutput<T>
     where
         T: Slice<R> + Offset + AsBytes + Slice<RangeTo<usize>>,
 {
@@ -218,7 +218,7 @@ impl<'a, T, R> Slice<R> for ConditionInput<T>
         let next_fragment = self.input.slice(range);
         let consumed_len = self.input.offset(&next_fragment);
         if consumed_len == 0 {
-            return ConditionInput {
+            return ParserOutput {
                 input: next_fragment
             };
         }
@@ -232,7 +232,7 @@ impl<'a, T, R> Slice<R> for ConditionInput<T>
         // let number_of_lines = iter.count() as u32;
         // let next_line = self.line + number_of_lines;
 
-        ConditionInput {
+        ParserOutput {
             input: next_fragment
         }
     }

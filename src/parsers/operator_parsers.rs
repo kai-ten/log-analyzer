@@ -1,74 +1,33 @@
 use crate::detection::Condition;
-use crate::parsers::atomic_parsers::{all_of, all_of_them, and, and_practice, not, one_of, one_of_them, or, parens, pipe, search_identifiers, search_identifiers_practice};
 use log::warn;
 use nom::branch::alt;
 use nom::error::ErrorKind::Tag;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::{error_position, Finish, IResult};
-use std::borrow::BorrowMut;
-use nom_locate::LocatedSpan;
-use crate::parsers::input::ConditionInput;
+use crate::parsers::and_parser::and_parser;
+use crate::parsers::not_parser::not_parser;
+use crate::parsers::or_parser::or_parser;
+use crate::parsers::parser_output::ParserOutput;
+use crate::parsers::search_id_parser::search_identifiers_parser;
 
-pub type Span<'a> = LocatedSpan<&'a Condition>;
 
 /// Parser when parens is a match
 ///
 /// The below links contains a reference to the library that fixes this issue. Nom will support in v8.0
 /// https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
-pub fn parser(input: &str) -> IResult<&str, &str> {
-    let result: IResult<&str, &str> = alt((
-        parens,
-        one_of_them,
-        all_of_them,
-        one_of,
-        all_of,
-        not,
-        and,
-        or,
-        pipe,
-        search_identifiers,
-    ))(input);
-
-    result
-}
-
-
-pub fn new_parser(input: &str) -> Result<(&str, ConditionInput<Condition>), Error<&str>> {
+pub fn parser(input: &str) -> Result<(&str, ParserOutput<Condition>), Error<&str>> {
 
     let result = alt((
-        and_practice,
-        search_identifiers_practice,
+        not_parser,
+        and_parser,
+        or_parser,
+        search_identifiers_parser,
     ))(input).finish();
 
     println!("{:?}", result);
     result
-    // ()
 }
 
-
-/// Parser when not is a match
-pub fn not_parser(input: &str) -> Result<(&str, &str, Condition), Error<&str>> {
-    let result: Result<(&str, &str), Error<&str>> =
-        alt((parens, search_identifiers))(input).finish();
-
-    let mut condition = Condition::new();
-
-    // update here
-
-    let ok2 = match result {
-        Ok(wow) => wow,
-        Err(e) => return Err(e),
-    };
-
-    Ok((ok2.0, ok2.1, condition))
-}
-
-/// Parser when operator is a match
-pub fn conditional_parser(input: &str) -> IResult<&str, &str> {
-    let result: IResult<&str, &str> = alt((parens, not, search_identifiers))(input);
-
-    result
-}
 
 #[cfg(test)]
 mod tests {
@@ -96,8 +55,8 @@ mod tests {
     // }
 
     #[test]
-    fn test_new_parser() {
-        let test = new_parser("Selection");
+    fn test_parser() {
+        let test = parser("Selection");
         println!("{:?}", test);
     }
 
@@ -106,33 +65,4 @@ mod tests {
         // write tests in this exact location
     }
 
-    #[test]
-    fn not_parser_valid_inputs() {
-        let condition = Condition::new();
-
-        let parens_parser_result = not_parser("(not keywords) or filters");
-        println!("{:?}", parens_parser_result);
-        assert_eq!(
-            parens_parser_result,
-            Ok((" or filters", "not keywords", condition))
-        );
-
-        let condition2 = Condition::new();
-
-        let search_id_parser_result = not_parser("keywords");
-        println!("{:?}", search_id_parser_result);
-        assert_eq!(search_id_parser_result, Ok(("", "keywords", condition2)));
-    }
-
-    #[test]
-    fn operator_parser_valid_inputs() {
-        let parens_parser_result = conditional_parser("(not keywords) or filters");
-        assert_eq!(parens_parser_result, Ok((" or filters", "not keywords")));
-
-        let not_parser_result = conditional_parser("not keywords");
-        assert_eq!(not_parser_result, Ok((" keywords", "not")));
-
-        let search_id_parser_result = conditional_parser("keywords");
-        assert_eq!(search_id_parser_result, Ok(("", "keywords")));
-    }
 }
