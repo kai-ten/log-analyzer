@@ -4,6 +4,7 @@ use nom::combinator::value;
 use nom::IResult;
 use crate::detection::{Condition, OPERATOR, PARSER_TYPES};
 use crate::parsers::not_parser::not_parser;
+use crate::parsers::parens_parser::parens_parser;
 use crate::parsers::parser_output::ParserOutput;
 use crate::parsers::search_id_parser::search_identifiers_parser;
 
@@ -29,7 +30,7 @@ pub fn or_parser(
             condition.parser_result = Some(parser_result);
             condition.search_identifier = condition_input.search_identifier.clone();
             condition.nested_detections = condition_input.nested_detections.clone();
-            condition.is_negated = Some(condition_input.is_negated.unwrap());
+            condition.is_negated = Some(condition_input.is_negated.unwrap_or(false));
 
             rule_condition = parser_str_builder(condition.clone().parser_result);
         }
@@ -46,12 +47,11 @@ fn or(input: &str) -> IResult<&str, &str> {
 pub fn downstream_or_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> {
 
     let result = alt((
-        // parens_practice,
+        parens_parser,
         not_parser,
         search_identifiers_parser,
     ))(input);
 
-    println!("{:?}", result);
     result
 }
 

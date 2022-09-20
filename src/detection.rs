@@ -20,9 +20,9 @@ use std::vec;
 /// Contains the conditions for a single Detection.
 // TODO - Conditions should not be Optional?
 #[derive(Clone, Debug, PartialEq)]
-struct Detection {
-    operator: Option<OPERATOR>,
-    conditions: Option<Vec<Condition>>,
+pub struct Detection {
+    pub(crate) operator: Option<OPERATOR>,
+    pub(crate) conditions: Option<Vec<Condition>>,
 }
 
 /// Metadata and Fields to compose a Condition.
@@ -33,7 +33,7 @@ pub struct Condition {
     pub(crate) is_negated: Option<bool>,
     pub(crate) operator: Option<OPERATOR>,
     pub(crate) search_identifier: Option<String>,
-    pub(crate) nested_detections: Option<BTreeMap<Option<OPERATOR>, Vec<Condition>>>,
+    pub(crate) nested_detections: Option<Detection>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,7 +67,7 @@ impl OPERATOR {
 
 
 impl Detection {
-    fn new() -> Detection {
+    pub fn new() -> Detection {
         Detection {
             operator: None,
             conditions: None,
@@ -91,7 +91,7 @@ impl Condition {
             search_identifier: None,
             is_negated: None,
             nested_detections: None,
-            operator: None
+            operator: None,
         }
     }
 
@@ -182,7 +182,7 @@ fn process_condition(
 
 
 // Ignore process_condition for now, put loop in here and try to complete implementation for recursion
-fn parse_detection(rule_condition: &str) {
+pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
 
     let mut detection = Detection::new();
     let mut remaining_condition = rule_condition;
@@ -192,19 +192,34 @@ fn parse_detection(rule_condition: &str) {
     while !remaining_condition.is_empty() {
 
         match parser(remaining_condition) {
-            Ok((remaining, condition)) => { // ConditionInput is changing to ConditionOutput soon, so all refactoring will also standardize naming of param
+            Ok((remaining, condition)) => {
 
                 remaining_condition = remaining;
                 let mut condition_result = Condition::new();
 
                 match condition.parser_type.as_ref().unwrap() {
-                    PARSER_TYPES::PARENS => println!("PARENS"),
-                    PARSER_TYPES::ONE_OF_THEM => println!("ONE_OF_THEM"),
-                    PARSER_TYPES::ALL_OF_THEM => println!("ALL_OF_THEM"),
-                    PARSER_TYPES::ONE_OF => println!("ONE_OF"),
-                    PARSER_TYPES::ALL_OF => println!("ALL_OF"),
+                    PARSER_TYPES::PARENS => {
+                        condition_result.nested_detections = condition.nested_detections.clone();
+                        detection.conditions = Some(vec![condition.input]);
+                    },
+                    PARSER_TYPES::ONE_OF_THEM => {
+                        println!("ONE_OF_THEM");
+                    },
+                    PARSER_TYPES::ALL_OF_THEM => {
+                        println!("ALL_OF_THEM");
+                    },
+                    PARSER_TYPES::ONE_OF => {
+                        println!("ONE_OF");
+                    },
+                    PARSER_TYPES::ALL_OF => {
+                        println!("ALL_OF");
+                    },
                     PARSER_TYPES::NOT => {
                         condition_result = condition.input.clone();
+
+                        let mut conditions = detection.conditions.unwrap_or(vec![]);
+                        conditions.push(condition_result);
+                        detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::AND => {
                         detection.operator = condition.operator.clone();
@@ -222,9 +237,10 @@ fn parse_detection(rule_condition: &str) {
                         conditions.push(condition_result);
                         detection.conditions = Some(conditions);
                     },
-                    PARSER_TYPES::PIPE => println!("PIPE SHOULD RETURN ERROR"),
+                    PARSER_TYPES::PIPE => {
+                        println!("PIPE SHOULD RETURN ERROR")
+                    },
                     PARSER_TYPES::SEARCH_IDENTIFIER => {
-                        println!("SEARCH_IDENTIFIER");
                         detection.conditions = Some(vec![condition.input]);
                     },
                     _ => println!("I DONT KNOW YET")
@@ -237,9 +253,8 @@ fn parse_detection(rule_condition: &str) {
 
     println!("DETECTION: {:?}", detection);
     // Ok((remaining_condition, condition))
-    ()
+    Ok(detection)
 }
-
 
 
 /// Conditions are returned by the yml processor as the Enum DetectionTypes.
@@ -267,16 +282,19 @@ mod tests {
 
     #[test]
     fn parse_detection_testdd() {
-        let result = parse_detection("Selection");
+        // let result = parse_detection("Selection");
+        // println!("{:?}", result);
+        //
+        // let result = parse_detection("Not Selection");
+        // println!("{:?}", result);
+        //
+        // let result = parse_detection("Selection and not Filter");
+        // println!("{:?}", result);
+
+        let result = parse_detection("Selection and Keywords");
         println!("{:?}", result);
 
-        let result = parse_detection("Not Selection");
-        println!("{:?}", result);
-
-        let result = parse_detection("Selection and not Filter");
-        println!("{:?}", result);
-
-        let result = parse_detection("Selection or not Filter");
+        let result = parse_detection("(Selection or not Filter) and Keywords");
         println!("{:?}", result);
     }
 

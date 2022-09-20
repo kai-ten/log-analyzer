@@ -7,6 +7,7 @@ use nom::{error_position, Finish, IResult};
 use crate::parsers::and_parser::and_parser;
 use crate::parsers::not_parser::not_parser;
 use crate::parsers::or_parser::or_parser;
+use crate::parsers::parens_parser::parens_parser;
 use crate::parsers::parser_output::ParserOutput;
 use crate::parsers::search_id_parser::search_identifiers_parser;
 
@@ -18,13 +19,13 @@ use crate::parsers::search_id_parser::search_identifiers_parser;
 pub fn parser(input: &str) -> Result<(&str, ParserOutput<Condition>), Error<&str>> {
 
     let result = alt((
+        parens_parser,
         not_parser,
         and_parser,
         or_parser,
         search_identifiers_parser,
     ))(input).finish();
 
-    println!("{:?}", result);
     result
 }
 

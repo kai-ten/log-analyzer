@@ -1,5 +1,6 @@
+use std::borrow::Borrow;
 use std::collections::BTreeMap;
-use crate::detection::{Condition, OPERATOR, PARSER_TYPES};
+use crate::detection::{Condition, Detection, OPERATOR, parse_detection, PARSER_TYPES};
 use crate::parsers::take_until_unbalanced::take_until_unbalanced;
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag, tag_no_case, take_until, take_while};
@@ -12,11 +13,8 @@ use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::{AsBytes, Finish, InputLength, InputTake, IResult, Parser};
 use crate::parsers::not_parser::not_parser;
+use crate::parsers::operator_parsers::parser;
 use crate::parsers::parser_output::ParserOutput;
-
-pub fn parens(input: &str) -> IResult<&str, &str> {
-    delimited(tag("("), take_until_unbalanced('(', ')'), tag(")"))(input.trim())
-}
 
 pub fn one_of_them(input: &str) -> IResult<&str, &str> {
     tag_no_case("1 of them")(input.trim())
@@ -52,39 +50,6 @@ mod tests {
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
 
-    #[test]
-    fn parens_input_nested() {
-        let parser_result =
-            parens("((filter1 and filter2) or keywords or events) and not selection");
-        assert_eq!(
-            parser_result,
-            Ok((
-                " and not selection",
-                "(filter1 and filter2) or keywords or events"
-            ))
-        );
-
-        let remaining_value = match parser_result {
-            Ok((returned, remaining)) => remaining,
-            Err(err) => "Error",
-        };
-
-        // Test the nested parentheses
-        let nested_parser_result = parens(remaining_value);
-        assert_eq!(
-            nested_parser_result,
-            Ok((" or keywords or events", "filter1 and filter2"))
-        );
-
-        let parser_result = parens(" keywords and not selection ");
-        assert_eq!(
-            parser_result,
-            Err(nom::Err::Error(Error::from_error_kind(
-                "keywords and not selection",
-                Tag
-            )))
-        );
-    }
 
     // Do this stuff eventually
     ///////////////////////////////

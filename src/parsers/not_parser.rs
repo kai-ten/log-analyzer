@@ -4,6 +4,7 @@ use nom::bytes::complete::tag_no_case;
 use nom::combinator::value;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::IResult;
+use crate::parsers::parens_parser::parens_parser;
 use crate::parsers::parser_output::ParserOutput;
 use crate::parsers::search_id_parser::search_identifiers_parser;
 
@@ -45,7 +46,7 @@ fn not(input: &str) -> IResult<&str, &str> {
 fn downstream_not_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> {
 
     let result = alt((
-        // parens_practice,
+        parens_parser,
         // one of / all of combos
         search_identifiers_parser,
     ))(input);

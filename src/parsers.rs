@@ -6,3 +6,4 @@ mod not_parser;
 mod and_parser;
 mod or_parser;
 mod search_id_parser;
+mod parens_parser;
