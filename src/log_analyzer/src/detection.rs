@@ -1,4 +1,4 @@
-use crate::parsers::operator_parsers::parser;
+use sigma_rule_parser::operator_parsers::parser;
 use crate::sigma_rule::DetectionTypes;
 use crate::SigmaRule;
 use anyhow::Error;

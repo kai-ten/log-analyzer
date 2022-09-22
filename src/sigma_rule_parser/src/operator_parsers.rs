@@ -1,15 +1,26 @@
-use crate::detection::Condition;
 use log::warn;
+
 use nom::branch::alt;
 use nom::error::ErrorKind::Tag;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::{error_position, Finish, IResult};
-use crate::parsers::and_parser::and_parser;
-use crate::parsers::not_parser::not_parser;
-use crate::parsers::or_parser::or_parser;
-use crate::parsers::parens_parser::parens_parser;
-use crate::parsers::parser_output::ParserOutput;
-use crate::parsers::search_id_parser::search_identifiers_parser;
+
+use log_analyzer::detection::Condition;
+
+use sigma_rule_parser::and_parser::and_parser;
+use sigma_rule_parser::not_parser::not_parser;
+use sigma_rule_parser::or_parser::or_parser;
+use sigma_rule_parser::parens_parser::parens_parser;
+use sigma_rule_parser::parser_output::ParserOutput;
+use sigma_rule_parser::search_id_parser::search_identifiers_parser;
+
+use crate::parser_output::ParserOutput;
+
+use crate::and_parser::and_parser;
+use crate::not_parser::not_parser;
+use crate::or_parser::or_parser;
+use crate::parens_parser::parens_parser;
+use crate::search_id_parser::search_identifiers_parser;
 
 
 /// Parser when parens is a match
@@ -33,7 +44,7 @@ pub fn parser(input: &str) -> Result<(&str, ParserOutput<Condition>), Error<&str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sigma_rule::DetectionTypes::String;
+    use log_analyzer::sigma_rule::DetectionTypes::String;
     use log::error;
     use nom::error::ErrorKind::Tag;
 

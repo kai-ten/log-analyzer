@@ -1,12 +1,15 @@
-use crate::detection::{Condition, OPERATOR, PARSER_TYPES};
 use nom::branch::alt;
 use nom::bytes::complete::tag_no_case;
 use nom::combinator::value;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::IResult;
-use crate::parsers::parens_parser::parens_parser;
-use crate::parsers::parser_output::ParserOutput;
-use crate::parsers::search_id_parser::search_identifiers_parser;
+
+use log_analyzer::detection::{Condition, OPERATOR, PARSER_TYPES};
+
+use sigma_rule_parser::parens_parser::parens_parser;
+use sigma_rule_parser::parser_output::ParserOutput;
+use sigma_rule_parser::search_id_parser::search_identifiers_parser;
+use crate::parser_output::ParserOutput;
 
 
 pub fn not_parser(
@@ -61,7 +64,7 @@ fn parser_str_builder(input: Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sigma_rule::DetectionTypes::String;
+    use log_analyzer::sigma_rule::DetectionTypes::String;
     use log::error;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};

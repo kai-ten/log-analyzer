@@ -1,0 +1,7 @@
+{
+  "target-field": "json-source-field",
+  "TargetImage": "target.img",
+  "SourceImage": "source.img",
+  "EventCode": "event.code",
+  "EventMsg": "event.msg"
+}

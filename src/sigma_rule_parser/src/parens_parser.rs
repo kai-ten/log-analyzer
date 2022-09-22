@@ -1,15 +1,20 @@
-use crate::detection::{Condition, Detection, OPERATOR, PARSER_TYPES};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, tag_no_case};
 use nom::combinator::value;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::IResult;
 use nom::sequence::delimited;
-use crate::parsers::not_parser::not_parser;
-use crate::parsers::operator_parsers::parser;
-use crate::parsers::parser_output::ParserOutput;
-use crate::parsers::search_id_parser::search_identifiers_parser;
-use crate::parsers::take_until_unbalanced::take_until_unbalanced;
+
+use log_analyzer::detection::{Condition, Detection, OPERATOR, PARSER_TYPES};
+
+use sigma_rule_parser::not_parser::not_parser;
+use sigma_rule_parser::operator_parsers::parser;
+use sigma_rule_parser::parser_output::ParserOutput;
+use sigma_rule_parser::search_id_parser::search_identifiers_parser;
+use sigma_rule_parser::take_until_unbalanced::take_until_unbalanced;
+use crate::operator_parsers::parser;
+use crate::parser_output::ParserOutput;
+use crate::take_until_unbalanced::take_until_unbalanced;
 
 
 pub fn parens_parser(
@@ -106,12 +111,12 @@ fn parens(input: &str) -> IResult<&str, &str> {
 mod tests {
 
     use nom::error::ErrorKind::Tag;
-    use crate::parsers::parens_parser::{parens, parens_parser};
+    use sigma_rule_parser::parens_parser::{parens, parens_parser};
     use nom::error::{Error, ErrorKind, ParseError};
-    use crate::detection::{Condition, Detection, OPERATOR, PARSER_TYPES};
-    use crate::detection::OPERATOR::AND;
-    use crate::detection::PARSER_TYPES::{NOT, PARENS, SEARCH_IDENTIFIER};
-    use crate::parsers::parser_output::ParserOutput;
+    use log_analyzer::detection::{Condition, Detection, OPERATOR, PARSER_TYPES};
+    use log_analyzer::detection::OPERATOR::AND;
+    use log_analyzer::detection::PARSER_TYPES::{NOT, PARENS, SEARCH_IDENTIFIER};
+    use sigma_rule_parser::parser_output::ParserOutput;
 
     #[test]
     fn nested_parens_parser_condition() {

@@ -1,18 +1,6 @@
-[package]
-name = "log-analysis"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-anyhow = "1.0.61"
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
-tokio = { version = "1.20.1", features = ["full"] }
-walkdir = "2.3.2"
-log = "0.4"
-log4rs = "1.1.1"
-nom = "7"
-nom_locate = "4.0.0"
-indexmap = "1.9.1"
+[workspace]
+members = [
+    "src/log_analyzer",
+    "src/sigma_rule_parser",
+    "src/sigma_log_parser",
+]

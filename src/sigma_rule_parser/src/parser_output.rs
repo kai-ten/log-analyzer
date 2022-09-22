@@ -1,13 +1,15 @@
 use nom::{AsBytes, Compare, CompareResult, ExtendInto, FindSubstring, FindToken, InputIter, InputLength, InputTake, InputTakeAtPosition, IResult, Needed, Offset, ParseTo, Slice};
 use nom::error::{ErrorKind, ParseError};
+use nom::Err::{Error, Incomplete};
+
 use std::cmp;
 use std::ops::{RangeFrom, RangeTo};
 use std::str::FromStr;
-use nom::Err::{Error, Incomplete};
+
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ParserOutput<T> {
-    pub(crate) input: T
+    pub input: T
 }
 
 impl<T> ParserOutput<T> {

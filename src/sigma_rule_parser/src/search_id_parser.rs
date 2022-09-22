@@ -1,11 +1,14 @@
-use crate::detection::{Condition, OPERATOR, PARSER_TYPES};
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case, take_until, take_while};
 use nom::combinator::{rest, value};
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::IResult;
-use crate::parsers::not_parser::not_parser;
-use crate::parsers::parser_output::ParserOutput;
+
+use log_analyzer::detection::{Condition, OPERATOR, PARSER_TYPES};
+
+use sigma_rule_parser::not_parser::not_parser;
+use sigma_rule_parser::parser_output::ParserOutput;
+use crate::parser_output::ParserOutput;
 
 /// TODO: Support wild card names - handled in Detection creation?
 /// Returns search identifiers within a condition (take_until(" ")), and at the end of a condition (rest of string)
@@ -44,7 +47,7 @@ fn parser_str_builder(input: Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sigma_rule::DetectionTypes::String;
+    use log_analyzer::sigma_rule::DetectionTypes::String;
     use log::error;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};

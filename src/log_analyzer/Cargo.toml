@@ -1,0 +1,22 @@
+[package]
+name = "log-analyzer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.2.1"
+anyhow = "1.0.61"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+#tokio = { version = "1.20.1", features = ["full"] }
+walkdir = "2.3.2"
+log = "0.4"
+log4rs = "1.1.1"
+nom = "7"
+nom_locate = "4.0.0"
+indexmap = "1.9.1"
+sigma_rule_parser = { path = "../sigma_rule_parser" }
+sigma_log_parser = { path = "../sigma_log_parser" }
