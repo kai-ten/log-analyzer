@@ -3,16 +3,13 @@ use nom::bytes::complete::tag_no_case;
 use nom::combinator::value;
 use nom::IResult;
 
-use log_analyzer::detection::{Condition, OPERATOR, PARSER_TYPES};
+// use log_analyzer::detection::{Condition, OPERATOR, PARSER_TYPES};
 
-use sigma_rule_parser::not_parser::not_parser;
-use sigma_rule_parser::parens_parser::parens_parser;
-use sigma_rule_parser::parser_output::ParserOutput;
-use sigma_rule_parser::search_id_parser::search_identifiers_parser;
 use crate::not_parser::not_parser;
 use crate::parens_parser::parens_parser;
 use crate::parser_output::ParserOutput;
 use crate::search_id_parser::search_identifiers_parser;
+use crate::structs::condition::{Condition, OPERATOR, PARSER_TYPES};
 
 
 pub fn or_parser(
@@ -68,8 +65,6 @@ fn parser_str_builder(input: Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log_analyzer::sigma_rule::DetectionTypes::String;
-    use log::error;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
 

@@ -24,12 +24,12 @@ use nom::IResult;
 ///
 /// # Basic usage
 /// ```
-/// use nom::bytes::complete::tag;
-/// use nom::sequence::delimited;
-/// use parse_hyperlinks::take_until_unbalanced;
+/// //use nom::bytes::complete::tag;
+/// //use nom::sequence::delimited;
+/// //use parse_hyperlinks::take_until_unbalanced;
 ///
-/// let mut parser = delimited(tag("<"), take_until_unbalanced('<', '>'), tag(">"));
-/// assert_eq!(parser("<<inside>inside>abc"), Ok(("abc", "<inside>inside")));
+/// //let mut parser = delimited(tag("<"), take_until_unbalanced('<', '>'), tag(">"));
+/// //ssert_eq!(parser("<<inside>inside>abc"), Ok(("abc", "<inside>inside")));
 /// ```
 /// It skips nested brackets until it finds an extra unbalanced closing bracket. Escaped brackets
 /// like `\<` and `\>` are not considered as brackets and are not counted. This function is

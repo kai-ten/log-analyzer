@@ -2,7 +2,6 @@ extern crate core;
 use sigma_rule_parser;
 
 mod detection;
-mod parsers;
 mod sigma_rule;
 mod yml;
 mod server;

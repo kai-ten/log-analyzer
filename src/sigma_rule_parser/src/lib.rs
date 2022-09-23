@@ -1,9 +1,10 @@
 mod take_until_unbalanced;
-mod and_parser;
-mod atomic_parsers;
-mod operator_parsers;
-mod parser_output;
-mod not_parser;
-mod or_parser;
-mod search_id_parser;
-mod parens_parser;
+pub mod and_parser;
+pub mod atomic_parsers;
+pub mod operator_parsers;
+pub mod parser_output;
+pub mod not_parser;
+pub mod or_parser;
+pub mod search_id_parser;
+pub mod parens_parser;
+pub mod structs;

@@ -1,8 +1,7 @@
-use nom::{AsBytes, Compare, CompareResult, ExtendInto, FindSubstring, FindToken, InputIter, InputLength, InputTake, InputTakeAtPosition, IResult, Needed, Offset, ParseTo, Slice};
+use nom::{AsBytes, Compare, CompareResult, ExtendInto, FindSubstring, FindToken, InputIter, InputLength, InputTake, InputTakeAtPosition, IResult, Offset, ParseTo, Slice};
 use nom::error::{ErrorKind, ParseError};
 use nom::Err::{Error, Incomplete};
 
-use std::cmp;
 use std::ops::{RangeFrom, RangeTo};
 use std::str::FromStr;
 
@@ -225,9 +224,9 @@ impl<'a, T, R> Slice<R> for ParserOutput<T>
             };
         }
 
-        let consumed = self.input.slice(..consumed_len);
+        // let consumed = self.input.slice(..consumed_len);
 
-        let next_offset = self.offset(self) + consumed_len;
+        // let next_offset = self.offset(self) + consumed_len;
 
         // let consumed_as_bytes = consumed.as_bytes();
         // let iter = Memchr::new(b'\n', consumed_as_bytes);

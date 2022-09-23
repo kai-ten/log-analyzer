@@ -1,19 +1,11 @@
-use nom::branch::alt;
-use nom::bytes::complete::{tag, tag_no_case};
-use nom::combinator::value;
-use nom::error::{Error, ErrorKind, ParseError};
+use nom::bytes::complete::tag;
 use nom::IResult;
 use nom::sequence::delimited;
 
-use log_analyzer::detection::{Condition, Detection, OPERATOR, PARSER_TYPES};
-
-use sigma_rule_parser::not_parser::not_parser;
-use sigma_rule_parser::operator_parsers::parser;
-use sigma_rule_parser::parser_output::ParserOutput;
-use sigma_rule_parser::search_id_parser::search_identifiers_parser;
-use sigma_rule_parser::take_until_unbalanced::take_until_unbalanced;
 use crate::operator_parsers::parser;
 use crate::parser_output::ParserOutput;
+use crate::structs::condition::{Condition, PARSER_TYPES};
+use crate::structs::detection::Detection;
 use crate::take_until_unbalanced::take_until_unbalanced;
 
 
@@ -39,6 +31,8 @@ pub fn parens_parser(
                 match condition.parser_type.as_ref().unwrap() {
                     PARSER_TYPES::PARENS => {
                         condition_result.nested_detections = condition.nested_detections.clone();
+                        condition_result.parser_result = condition.parser_result.clone();
+                        condition_result.is_negated = Some(condition.is_negated.unwrap_or(false));
                         detection.conditions = Some(vec![condition.input]);
                     },
                     PARSER_TYPES::ONE_OF_THEM => {
@@ -83,7 +77,6 @@ pub fn parens_parser(
                         detection.conditions = Some(vec![condition.input]);
                     },
                     _ => {
-                        // return Ok((remaining_condition, ParserOutput {input: {condition_result.clone()}}));
                         print!("I DONT KNOW YET, ERROR MAYBE???");
                     }
                 }
@@ -111,20 +104,20 @@ fn parens(input: &str) -> IResult<&str, &str> {
 mod tests {
 
     use nom::error::ErrorKind::Tag;
-    use sigma_rule_parser::parens_parser::{parens, parens_parser};
-    use nom::error::{Error, ErrorKind, ParseError};
-    use log_analyzer::detection::{Condition, Detection, OPERATOR, PARSER_TYPES};
-    use log_analyzer::detection::OPERATOR::AND;
-    use log_analyzer::detection::PARSER_TYPES::{NOT, PARENS, SEARCH_IDENTIFIER};
-    use sigma_rule_parser::parser_output::ParserOutput;
+    use nom::error::{Error, ParseError};
+    use crate::parens_parser::{parens, parens_parser};
+    use crate::parser_output::ParserOutput;
+    use crate::structs::condition::{Condition, OPERATOR, PARSER_TYPES};
+    use crate::structs::condition::OPERATOR::AND;
+    use crate::structs::detection::Detection;
 
     #[test]
     fn nested_parens_parser_condition() {
         let result = parens_parser("(Selection or (not Filter and Selection1)) and Keywords");
         assert_eq!(result, Ok((" and Keywords", ParserOutput { input:
         Condition {
-            parser_type: Some(PARENS),
-            parser_result: None,
+            parser_type: Some(PARSER_TYPES::PARENS),
+            parser_result: Some(vec!["and".to_string(), "Selection1".to_string()]),
             is_negated: None,
             operator: None,
             search_identifier: None,
@@ -132,7 +125,7 @@ mod tests {
                 operator: None,
                 conditions: Some(vec![
                     Condition {
-                        parser_type: Some(PARENS),
+                        parser_type: Some(PARSER_TYPES::PARENS),
                         parser_result: Some(vec!["and".to_string(), "Selection1".to_string()]),
                         is_negated: None,
                         operator: None,
@@ -174,7 +167,7 @@ mod tests {
             ParserOutput {
                 input: Condition {
                     parser_type: Some(PARSER_TYPES::PARENS),
-                    parser_result: None,
+                    parser_result: Some(vec!["or".to_string(), "not".to_string(), "Filter".to_string()]),
                     is_negated: None,
                     operator: None,
                     search_identifier: None,
@@ -182,7 +175,7 @@ mod tests {
                         operator: Some(OPERATOR::OR),
                         conditions: Some(vec![
                             Condition {
-                                parser_type: Some(SEARCH_IDENTIFIER),
+                                parser_type: Some(PARSER_TYPES::SEARCH_IDENTIFIER),
                                 parser_result: Some(vec!["Selection".to_string()]),
                                 is_negated: None, operator: None,
                                 search_identifier: Some("Selection".to_string()),

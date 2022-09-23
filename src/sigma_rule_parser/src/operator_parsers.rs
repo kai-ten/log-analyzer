@@ -1,18 +1,6 @@
-use log::warn;
-
 use nom::branch::alt;
-use nom::error::ErrorKind::Tag;
-use nom::error::{Error, ErrorKind, ParseError};
-use nom::{error_position, Finish, IResult};
-
-use log_analyzer::detection::Condition;
-
-use sigma_rule_parser::and_parser::and_parser;
-use sigma_rule_parser::not_parser::not_parser;
-use sigma_rule_parser::or_parser::or_parser;
-use sigma_rule_parser::parens_parser::parens_parser;
-use sigma_rule_parser::parser_output::ParserOutput;
-use sigma_rule_parser::search_id_parser::search_identifiers_parser;
+use nom::error::Error;
+use nom::{Finish, IResult};
 
 use crate::parser_output::ParserOutput;
 
@@ -21,10 +9,10 @@ use crate::not_parser::not_parser;
 use crate::or_parser::or_parser;
 use crate::parens_parser::parens_parser;
 use crate::search_id_parser::search_identifiers_parser;
+use crate::structs::condition::Condition;
 
 
 /// Parser when parens is a match
-///
 /// The below links contains a reference to the library that fixes this issue. Nom will support in v8.0
 /// https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
 pub fn parser(input: &str) -> Result<(&str, ParserOutput<Condition>), Error<&str>> {
@@ -44,9 +32,6 @@ pub fn parser(input: &str) -> Result<(&str, ParserOutput<Condition>), Error<&str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log_analyzer::sigma_rule::DetectionTypes::String;
-    use log::error;
-    use nom::error::ErrorKind::Tag;
 
     // #[test]
     // fn testa90() {

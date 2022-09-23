@@ -1,14 +1,12 @@
 use nom::branch::alt;
-use nom::bytes::complete::{tag_no_case, take_until, take_while};
+use nom::bytes::complete::{take_until, take_while};
 use nom::combinator::{rest, value};
-use nom::error::{Error, ErrorKind, ParseError};
 use nom::IResult;
 
-use log_analyzer::detection::{Condition, OPERATOR, PARSER_TYPES};
+// use log_analyzer::detection::{Condition, OPERATOR, PARSER_TYPES};
 
-use sigma_rule_parser::not_parser::not_parser;
-use sigma_rule_parser::parser_output::ParserOutput;
 use crate::parser_output::ParserOutput;
+use crate::structs::condition::{Condition, PARSER_TYPES};
 
 /// TODO: Support wild card names - handled in Detection creation?
 /// Returns search identifiers within a condition (take_until(" ")), and at the end of a condition (rest of string)
@@ -25,7 +23,7 @@ fn search_identifiers(
         Err(e) => return Err(e),
     };
 
-    Ok((sid_result))
+    Ok(sid_result)
 }
 
 pub fn search_identifiers_parser(
@@ -37,7 +35,7 @@ pub fn search_identifiers_parser(
     condition.parser_type = Some(PARSER_TYPES::SEARCH_IDENTIFIER);
     condition.parser_result = Some(vec![result.to_string()]);
     condition.search_identifier = Some(result.to_string());
-    value(ParserOutput { input: { condition.clone() } }, (take_while(|ch| ch != ' ')))(input.trim())
+    value(ParserOutput { input: { condition.clone() } }, take_while(|ch| ch != ' '))(input.trim())
 }
 
 fn parser_str_builder(input: Option<Vec<String>>) -> String {
@@ -47,10 +45,6 @@ fn parser_str_builder(input: Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log_analyzer::sigma_rule::DetectionTypes::String;
-    use log::error;
-    use nom::error::ErrorKind::Tag;
-    use nom::error::{Error, ParseError};
 
     #[test]
     fn search_identifier_condition() {
