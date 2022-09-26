@@ -14,7 +14,7 @@ pub fn and_parser(
     input: &str
 ) -> IResult<&str, ParserOutput<Condition>> {
 
-    let mut condition = Condition::new();
+    let mut condition = Condition::new(, , , );
     let (remaining, result) = and(input)?;
 
     let mut parser_result = vec![result.to_string()];
@@ -31,7 +31,7 @@ pub fn and_parser(
             condition.parser_result = Some(parser_result);
             condition.search_identifier = condition_input.search_identifier.clone();
             condition.nested_detections = condition_input.nested_detections.clone();
-            condition.is_negated = Some(condition_input.is_negated.unwrap_or(false)); // this is awful, refactor
+            condition.is_negated = Some(condition_input.is_negated.unwrap_or(false));
 
             rule_condition = parser_str_builder(condition.clone().parser_result);
         }

@@ -7,6 +7,18 @@ use nom::IResult;
 use crate::parsers::not_parser::not_parser;
 use crate::parsers::parser_output::ParserOutput;
 
+pub fn search_identifiers_parser(
+    input: &str
+) -> IResult<&str, ParserOutput<Condition>> {
+    let mut condition = Condition::new(, , , );
+    let (remaining, result) = search_identifiers(input)?;
+
+    condition.parser_type = Some(PARSER_TYPES::SEARCH_IDENTIFIER);
+    condition.parser_result = Some(vec![result.to_string()]);
+    condition.search_identifier = Some(result.to_string());
+    value(ParserOutput { input: { condition.clone() } }, (take_while(|ch| ch != ' ')))(input.trim())
+}
+
 /// TODO: Support wild card names - handled in Detection creation?
 /// Returns search identifiers within a condition (take_until(" ")), and at the end of a condition (rest of string)
 /// Returns the remaining string to parse, the result that was parsed, and the condition being updated.
@@ -23,18 +35,6 @@ fn search_identifiers(
     };
 
     Ok((sid_result))
-}
-
-pub fn search_identifiers_parser(
-    input: &str
-) -> IResult<&str, ParserOutput<Condition>> {
-    let mut condition = Condition::new();
-    let (remaining, result) = search_identifiers(input)?;
-
-    condition.parser_type = Some(PARSER_TYPES::SEARCH_IDENTIFIER);
-    condition.parser_result = Some(vec![result.to_string()]);
-    condition.search_identifier = Some(result.to_string());
-    value(ParserOutput { input: { condition.clone() } }, (take_while(|ch| ch != ' ')))(input.trim())
 }
 
 fn parser_str_builder(input: Option<Vec<String>>) -> String {

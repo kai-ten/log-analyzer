@@ -17,7 +17,7 @@ pub fn parens_parser(
 ) -> IResult<&str, ParserOutput<Condition>> {
 
     let mut detection = Detection::new(); // groups the conditions in the parentheses
-    let mut condition_result = Condition::new(); // builds the conditions in the parentheses
+    let mut condition_result = Condition::new(, , , ); // builds the conditions in the parentheses
 
     let (remaining, result) = parens(input)?;
 
@@ -89,7 +89,7 @@ pub fn parens_parser(
 
     }
 
-    let mut condition = Condition::new();
+    let mut condition = Condition::new(, , , );
     condition.parser_type = Some(PARSER_TYPES::PARENS);
     condition.parser_result = condition_result.parser_result;
     condition.nested_detections = Some(detection);

@@ -28,7 +28,7 @@ detection:
     EventID:
       - 456
       - 876
-  condition: selection and not filter and keywords
+  condition: 1 of selection* and not filter
 tags:
   - attack.credential_access
   - attack.execution

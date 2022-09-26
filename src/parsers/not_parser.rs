@@ -13,7 +13,7 @@ pub fn not_parser(
     input: &str
 ) -> IResult<&str, ParserOutput<Condition>> {
 
-    let mut condition = Condition::new();
+    let mut condition = Condition::new(, , , );
     let (remaining, result) = not(input)?;
 
     let mut parser_result = vec![result.to_string()];

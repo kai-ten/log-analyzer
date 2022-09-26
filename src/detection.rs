@@ -8,7 +8,6 @@ use nom::IResult;
 use std::collections::BTreeMap;
 use std::vec;
 
-// for the whole rule
 
 /// Contains the detections for all rules.
 /// This struct is compared to incoming logs to determine if there is a match or not.
@@ -25,15 +24,20 @@ pub struct Detection {
     pub(crate) conditions: Option<Vec<Condition>>,
 }
 
-/// Metadata and Fields to compose a Condition.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Condition {
-    pub(crate) parser_type: Option<PARSER_TYPES>,
-    pub(crate) parser_result: Option<Vec<String>>,
+    pub(crate) metadata: Metadata,
     pub(crate) is_negated: Option<bool>,
     pub(crate) operator: Option<OPERATOR>,
     pub(crate) search_identifier: Option<String>,
     pub(crate) nested_detections: Option<Detection>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Metadata {
+    pub(crate) parser_type: Option<PARSER_TYPES>,
+    pub(crate) parser_result_vec: Option<Vec<String>>,
+    pub(crate) parser_result: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -60,7 +64,7 @@ impl OPERATOR {
     fn as_str(&self) -> &'static str {
         match self {
             OPERATOR::AND => "and",
-            OPERATOR::OR => "or"
+            OPERATOR::OR => "or",
         }
     }
 }
@@ -73,39 +77,34 @@ impl Detection {
             conditions: None,
         }
     }
-
-    // fn modify(&mut self) -> Detection {
-    //     Detection {
-    //         search_identifier,
-    //         negation,
-    //         nested_detections
-    //     }
-    // }
 }
 
 impl Condition {
-    pub fn new() -> Condition {
+    pub fn new(
+        metadata: Metadata,
+        operator: Option<OPERATOR>,
+        is_negated: Option<bool>,
+        search_identifier: Option<String>,
+        nested_detections: Option<Detection>,
+    ) -> Condition {
         Condition {
-            parser_type: None,
-            parser_result: None,
-            search_identifier: None,
-            is_negated: None,
-            nested_detections: None,
-            operator: None,
+            metadata,
+            search_identifier,
+            is_negated,
+            nested_detections,
+            operator,
         }
     }
+}
 
-    // fn update(condition: &mut Condition) -> Condition {
-    //     condition.search_identifier =
-    // }
-
-    // fn modify(&mut self) -> Detection {
-    //     Detection {
-    //         search_identifier,
-    //         negation,
-    //         nested_detections
-    //     }
-    // }
+impl Metadata {
+    pub fn new(parser_type: Option<PARSER_TYPES>, parser_result_vec: Option<Vec<String>>, parser_result: String) -> Metadata {
+        Metadata {
+            parser_type,
+            parser_result_vec,
+            parser_result,
+        }
+    }
 }
 
 pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
@@ -195,7 +194,7 @@ pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
             Ok((remaining, condition)) => {
 
                 remaining_condition = remaining;
-                let mut condition_result = Condition::new();
+                let mut condition_result = Condition::new(, , , );
 
                 match condition.parser_type.as_ref().unwrap() {
                     PARSER_TYPES::PARENS => {
@@ -204,15 +203,18 @@ pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
                     },
                     PARSER_TYPES::ONE_OF_THEM => {
                         println!("ONE_OF_THEM");
+                        condition_result = condition.input;
                     },
                     PARSER_TYPES::ALL_OF_THEM => {
                         println!("ALL_OF_THEM");
                     },
                     PARSER_TYPES::ONE_OF => {
                         println!("ONE_OF");
+
                     },
                     PARSER_TYPES::ALL_OF => {
                         println!("ALL_OF");
+
                     },
                     PARSER_TYPES::NOT => {
                         condition_result = condition.input.clone();

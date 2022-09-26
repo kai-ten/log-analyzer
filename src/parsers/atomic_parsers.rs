@@ -36,7 +36,20 @@ pub fn pipe(input: &str) -> IResult<&str, &str> {
     tag_no_case("|")(input.trim())
 }
 
+fn one_of_them_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> {
+    let mut condition = Condition::new(, , , );
+    let (remaining, result) = one_of_them(input)?;
 
+    let mut parser_result = vec![result.to_string()];
+    condition.parser_type = Some(PARSER_TYPES::ONE_OF_THEM);
+    condition.parser_result = Some(vec![result.to_string()]);
+    condition.operator = Some(OPERATOR::OR);
+
+    // condition.search_identifier = condition_input.search_identifier.clone();
+    // condition.is_negated = Some(condition_input.is_negated.unwrap_or(false));
+
+    value(ParserOutput {input: {condition.clone()}}, tag_no_case(result))(input.trim())
+}
 
 fn parser_str_builder(input: Option<Vec<String>>) -> String {
     input.as_ref().unwrap().join(" ")
@@ -50,6 +63,12 @@ mod tests {
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
 
+
+    #[test]
+    fn okok() {
+        let result = one_of_them_parser("1 of them");
+        println!("{:?}", result);
+    }
 
     // Do this stuff eventually
     ///////////////////////////////
