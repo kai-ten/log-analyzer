@@ -8,43 +8,43 @@ use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ParserOutput<T> {
-    pub input: T
+    pub result: T
 }
 
 impl<T> ParserOutput<T> {
-    pub fn new(input: T) -> ParserOutput<T> {
+    pub fn new(result: T) -> ParserOutput<T> {
         ParserOutput {
-            input
+            result
         }
     }
 
     pub fn input(&self) -> &T {
-        &self.input
+        &self.result
     }
 }
 
 impl<T> core::ops::Deref for ParserOutput<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        &self.input
+        &self.result
     }
 }
 
 impl<T: AsBytes> ParserOutput<T> {
     fn as_bytes(&self) -> &[u8] {
-        &self.input.as_bytes()
+        &self.result.as_bytes()
     }
 }
 
 impl<T: Compare<B>, B: Into<ParserOutput<B>>> Compare<B> for ParserOutput<T> {
     #[inline(always)]
     fn compare(&self, t: B) -> CompareResult {
-        self.input.compare(t.into().input)
+        self.result.compare(t.into().result)
     }
 
     #[inline(always)]
     fn compare_no_case(&self, t: B) -> CompareResult {
-        self.input.compare_no_case(t.into().input)
+        self.result.compare_no_case(t.into().result)
     }
 }
 
@@ -58,10 +58,10 @@ where
     type Extender = T::Extender;
 
     fn new_builder(&self) -> Self::Extender {
-        self.input.new_builder()
+        self.result.new_builder()
     }
     fn extend_into(&self, acc: &mut Self::Extender) {
-        self.input.extend_into(acc)
+        self.result.extend_into(acc)
     }
 }
 
@@ -71,13 +71,13 @@ where
 {
     #[inline]
     fn find_substring(&self, substr: U) -> Option<usize> {
-        self.input.find_substring(substr)
+        self.result.find_substring(substr)
     }
 }
 
 impl<T: FindToken<Token>, Token> FindToken<Token> for ParserOutput<T> {
     fn find_token(&self, token: Token) -> bool {
-        self.input.find_token(token)
+        self.result.find_token(token)
     }
 }
 
@@ -91,28 +91,28 @@ where
 
     #[inline]
     fn iter_indices(&self) -> Self::Iter {
-        self.input.iter_indices()
+        self.result.iter_indices()
     }
     #[inline]
     fn iter_elements(&self) -> Self::IterElem {
-        self.input.iter_elements()
+        self.result.iter_elements()
     }
     #[inline]
     fn position<P>(&self, predicate: P) -> Option<usize>
         where
             P: Fn(Self::Item) -> bool,
     {
-        self.input.position(predicate)
+        self.result.position(predicate)
     }
     #[inline]
     fn slice_index(&self, count: usize) -> Result<usize, nom::Needed> {
-        self.input.slice_index(count)
+        self.result.slice_index(count)
     }
 }
 
 impl<T: InputLength> InputLength for ParserOutput<T> {
     fn input_len(&self) -> usize {
-        self.input.input_len()
+        self.result.input_len()
     }
 }
 
@@ -139,7 +139,7 @@ where
         where
             P: Fn(Self::Item) -> bool,
     {
-        match self.input.position(predicate) {
+        match self.result.position(predicate) {
             Some(n) => Ok(self.take_split(n)),
             None => Err(Incomplete(nom::Needed::new(1))),
         }
@@ -153,7 +153,7 @@ where
         where
             P: Fn(Self::Item) -> bool,
     {
-        match self.input.position(predicate) {
+        match self.result.position(predicate) {
             Some(0) => Err(Error(E::from_error_kind(self.clone(), e))),
             Some(n) => Ok(self.take_split(n)),
             None => Err(Incomplete(nom::Needed::new(1))),
@@ -181,11 +181,11 @@ where
         where
             P: Fn(Self::Item) -> bool,
     {
-        match self.input.position(predicate) {
+        match self.result.position(predicate) {
             Some(0) => Err(Error(E::from_error_kind(self.clone(), e))),
             Some(n) => Ok(self.take_split(n)),
             None => {
-                if self.input.input_len() == 0 {
+                if self.result.input_len() == 0 {
                     Err(Error(E::from_error_kind(self.clone(), e)))
                 } else {
                     Ok(self.take_split(self.input_len()))
@@ -207,7 +207,7 @@ impl<T> Offset for ParserOutput<T> {
 impl<R: FromStr,T: ParseTo<R>> ParseTo<R> for ParserOutput<T> {
     #[inline]
     fn parse_to(&self) -> Option<R> {
-        self.input.parse_to()
+        self.result.parse_to()
     }
 }
 
@@ -216,11 +216,11 @@ impl<'a, T, R> Slice<R> for ParserOutput<T>
         T: Slice<R> + Offset + AsBytes + Slice<RangeTo<usize>>,
 {
     fn slice(&self, range: R) -> Self {
-        let next_fragment = self.input.slice(range);
-        let consumed_len = self.input.offset(&next_fragment);
+        let next_fragment = self.result.slice(range);
+        let consumed_len = self.result.offset(&next_fragment);
         if consumed_len == 0 {
             return ParserOutput {
-                input: next_fragment
+                result: next_fragment
             };
         }
 
@@ -234,7 +234,7 @@ impl<'a, T, R> Slice<R> for ParserOutput<T>
         // let next_line = self.line + number_of_lines;
 
         ParserOutput {
-            input: next_fragment
+            result: next_fragment
         }
     }
 }

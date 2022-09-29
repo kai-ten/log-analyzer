@@ -2,41 +2,52 @@ use nom::branch::alt;
 use nom::bytes::complete::tag_no_case;
 use nom::combinator::value;
 use nom::IResult;
-
 use crate::parens_parser::parens_parser;
+
 use crate::search_id_parser::search_identifiers_parser;
 use crate::parser_output::ParserOutput;
-use crate::structs::condition::{Condition, PARSER_TYPES};
+use crate::structs::condition::{Condition, Metadata, PARSER_TYPES};
 
 
 pub fn not_parser(
     input: &str
 ) -> IResult<&str, ParserOutput<Condition>> {
+    let mut condition = Condition::init();
 
-    let mut condition = Condition::new();
     let (remaining, result) = not(input)?;
-
-    let mut parser_result = vec![result.to_string()];
-    condition.parser_type = Some(PARSER_TYPES::NOT);
-    condition.is_negated = Some(true);
-
+    let mut result_condition: String = String::from(result);
 
     let not_parser_result = downstream_not_parser(remaining);
-    let mut rule_condition = String::new();
     match not_parser_result {
-        Ok((_, condition_input)) => {
-            let downstream_parser_result = condition_input.parser_result.as_ref().unwrap();
-            parser_result.extend(downstream_parser_result.to_vec());
-            condition.parser_result = Some(parser_result);
-            condition.search_identifier = condition_input.search_identifier.clone();
-            condition.nested_detections = condition_input.nested_detections.clone();
+        Ok((_, parser_output)) => {
+            let downstream_parser_result = parser_output.metadata.parser_result.clone();
 
-            rule_condition = parser_str_builder(condition.clone().parser_result);
+
+            // TODO:
+            // MUST FIND WAY TO SUPPORT result_condition AS PARENS (result.trim()) OR AS A SEARCH ID (downstream_parser_result.trim())
+            // Seems like downstream_parser_result should be better at returning parens
+            // Then must apply same logic to and / or parsers
+            result_condition = format!("{}{}{}", result_condition, " ", downstream_parser_result.trim());
+
+            println!("DKJSHDKJH {}", result_condition);
+
+            let metadata = Metadata::new(
+                PARSER_TYPES::NOT,
+                result_condition.clone()
+            );
+
+            condition = Condition::new(
+                metadata,
+                Some(true),
+                None,
+                parser_output.search_identifier.clone(),
+                parser_output.nested_detections.clone()
+            );
         }
         Err(_) => {}
     }
 
-    value(ParserOutput {input: {condition.clone()}}, tag_no_case(rule_condition.clone().as_str()))(input.trim())
+    value(ParserOutput { result: {condition.clone()}}, tag_no_case(result_condition.clone().as_str()))(input.trim())
 }
 
 fn not(input: &str) -> IResult<&str, &str> {
@@ -44,7 +55,6 @@ fn not(input: &str) -> IResult<&str, &str> {
 }
 
 fn downstream_not_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> {
-
     let result = alt((
         parens_parser,
         // one of / all of combos
@@ -54,15 +64,58 @@ fn downstream_not_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> 
     result
 }
 
-fn parser_str_builder(input: Option<Vec<String>>) -> String {
-    input.as_ref().unwrap().join(" ")
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
+    use crate::structs::condition::OPERATOR;
+    use crate::structs::detection::Detection;
+
+    #[test]
+    fn not_parens_parser_condition() {
+        let result = not_parser("not (filter or not selection)");
+        assert_eq!(result, Ok((
+            "",
+            ParserOutput {
+                result: Condition {
+                    metadata: Metadata {
+                        parser_type: PARSER_TYPES::NOT,
+                        parser_result: "not (filter or not selection)".to_string(),
+                    },
+                    is_negated: Some(true),
+                    operator: None,
+                    search_identifier: None,
+                    nested_detections: Some(Detection {
+                        operator: Some(OPERATOR::OR),
+                        conditions: Some(vec![
+                            Condition {
+                                metadata: Metadata {
+                                    parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                                    parser_result: "filter".to_string()
+                                },
+                                is_negated: None,
+                                operator: None,
+                                search_identifier: Some("filter".to_string()),
+                                nested_detections: None
+                            },
+                            Condition {
+                                metadata: Metadata {
+                                    parser_type: PARSER_TYPES::OR,
+                                    parser_result: "or not selection".to_string()
+                                },
+                                is_negated: Some(true),
+                                operator: Some(OPERATOR::OR),
+                                search_identifier: Some("selection".to_string()),
+                                nested_detections: None
+                            }
+                        ])
+                    })
+                }
+            }
+        )));
+    }
 
     #[test]
     fn not_parser_condition() {
@@ -70,9 +123,11 @@ mod tests {
         assert_eq!(result, Ok((
             "",
             ParserOutput {
-                input: Condition {
-                    parser_type: Some(PARSER_TYPES::NOT),
-                    parser_result: Some(["not".to_string(), "filter".to_string()].to_vec()),
+                result: Condition {
+                    metadata: Metadata {
+                        parser_type: PARSER_TYPES::NOT,
+                        parser_result: "not filter".to_string(),
+                    },
                     is_negated: Some(true),
                     operator: None,
                     search_identifier: Some("filter".to_string()),

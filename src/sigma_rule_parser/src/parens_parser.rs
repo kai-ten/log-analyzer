@@ -4,7 +4,7 @@ use nom::sequence::delimited;
 
 use crate::operator_parsers::parser;
 use crate::parser_output::ParserOutput;
-use crate::structs::condition::{Condition, PARSER_TYPES};
+use crate::structs::condition::{Condition, Metadata, PARSER_TYPES};
 use crate::structs::detection::Detection;
 use crate::take_until_unbalanced::take_until_unbalanced;
 
@@ -13,27 +13,32 @@ pub fn parens_parser(
     input: &str
 ) -> IResult<&str, ParserOutput<Condition>> {
 
-    let mut detection = Detection::new(); // groups the conditions in the parentheses
-    let mut condition_result = Condition::new(); // builds the conditions in the parentheses
+    let mut detection = Detection::init(); // groups the conditions in the parentheses
+    let mut condition = Condition::init(); // builds the conditions in the parentheses
 
     let (remaining, result) = parens(input)?;
 
     let mut remaining_condition = remaining;
-    let mut result_condition = result;
+    let mut resulting_condition = result;
 
 
-    while !result_condition.is_empty() {
+    // while !remaining_condition.is_empty() {
+    //     println!("yo are u the real slim shady")
+    // }
 
-        match parser(result_condition) {
-            Ok((remaining, condition)) => {
-                result_condition = remaining;
+    while !resulting_condition.is_empty() {
 
-                match condition.parser_type.as_ref().unwrap() {
+        match parser(resulting_condition) {
+            Ok((remaining, parser_output)) => {
+                resulting_condition = remaining;
+
+                println!("{:?}", resulting_condition);
+
+                match parser_output.metadata.parser_type.clone() {
                     PARSER_TYPES::PARENS => {
-                        condition_result.nested_detections = condition.nested_detections.clone();
-                        condition_result.parser_result = condition.parser_result.clone();
-                        condition_result.is_negated = Some(condition.is_negated.unwrap_or(false));
-                        detection.conditions = Some(vec![condition.input]);
+                        condition.metadata = parser_output.metadata.clone();
+                        condition.nested_detections = parser_output.nested_detections.clone();
+                        detection.conditions = Some(vec![parser_output.result]);
                     },
                     PARSER_TYPES::ONE_OF_THEM => {
                         println!("ONE_OF_THEM");
@@ -48,51 +53,56 @@ pub fn parens_parser(
                         println!("ALL_OF");
                     },
                     PARSER_TYPES::NOT => {
-                        condition_result = condition.input.clone();
+                        condition = parser_output.result.clone();
 
                         let mut conditions = detection.conditions.unwrap_or(vec![]);
-                        conditions.push(condition_result.clone());
+                        conditions.push(condition.clone());
                         detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::AND => {
-                        detection.operator = condition.operator.clone();
-                        condition_result = condition.input.clone();
+                        detection.operator = parser_output.operator.clone();
+                        condition = parser_output.result.clone();
 
                         let mut conditions = detection.conditions.unwrap();
-                        conditions.push(condition_result.clone());
+                        conditions.push(condition.clone());
                         detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::OR => {
-                        detection.operator = condition.operator.clone();
-                        condition_result = condition.input.clone();
+                        detection.operator = parser_output.operator.clone();
+                        condition = parser_output.result.clone();
 
                         let mut conditions = detection.conditions.unwrap();
-                        conditions.push(condition_result.clone());
+                        conditions.push(condition.clone());
                         detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::PIPE => {
-                        println!("PIPE SHOULD RETURN ERROR")
+                        println!("PIPE SHOULD RETURN ERROR FOR NOW AND CONTINUE TO NEXT RULE");
                     },
                     PARSER_TYPES::SEARCH_IDENTIFIER => {
-                        detection.conditions = Some(vec![condition.input]);
+                        detection.conditions = Some(vec![parser_output.result]);
                     },
                     _ => {
                         print!("I DONT KNOW YET, ERROR MAYBE???");
                     }
                 }
 
-            },
+            }
             Err(..) => {}
         }
 
     }
 
-    let mut condition = Condition::new();
-    condition.parser_type = Some(PARSER_TYPES::PARENS);
-    condition.parser_result = condition_result.parser_result;
-    condition.nested_detections = Some(detection);
+    let mut condition_clone = Condition::init();
 
-    Ok((remaining_condition, ParserOutput {input: condition}))
+    let metadata = Metadata {
+        parser_type: PARSER_TYPES::PARENS,
+        parser_result: condition.metadata.parser_result.clone(),
+    };
+
+    condition_clone.metadata = metadata;
+    condition_clone.nested_detections = Some(detection);
+
+    Ok((remaining_condition, ParserOutput { result: condition_clone}))
 }
 
 fn parens(input: &str) -> IResult<&str, &str> {
@@ -107,17 +117,21 @@ mod tests {
     use nom::error::{Error, ParseError};
     use crate::parens_parser::{parens, parens_parser};
     use crate::parser_output::ParserOutput;
-    use crate::structs::condition::{Condition, OPERATOR, PARSER_TYPES};
+    use crate::structs::condition::{Condition, Metadata, OPERATOR, PARSER_TYPES};
     use crate::structs::condition::OPERATOR::AND;
     use crate::structs::detection::Detection;
 
+
+    // this test is looking not better
     #[test]
     fn nested_parens_parser_condition() {
         let result = parens_parser("(Selection or (not Filter and Selection1)) and Keywords");
-        assert_eq!(result, Ok((" and Keywords", ParserOutput { input:
+        assert_eq!(result, Ok((" and Keywords", ParserOutput { result:
         Condition {
-            parser_type: Some(PARSER_TYPES::PARENS),
-            parser_result: Some(vec!["and".to_string(), "Selection1".to_string()]),
+            metadata: Metadata {
+                parser_type: PARSER_TYPES::PARENS,
+                parser_result: "".to_string(),
+            },
             is_negated: None,
             operator: None,
             search_identifier: None,
@@ -125,8 +139,10 @@ mod tests {
                 operator: None,
                 conditions: Some(vec![
                     Condition {
-                        parser_type: Some(PARSER_TYPES::PARENS),
-                        parser_result: Some(vec!["and".to_string(), "Selection1".to_string()]),
+                        metadata: Metadata {
+                            parser_type: PARSER_TYPES::PARENS,
+                            parser_result: "and Selection1".to_string(),
+                        },
                         is_negated: None,
                         operator: None,
                         search_identifier: None,
@@ -134,16 +150,20 @@ mod tests {
                             operator: Some(AND),
                             conditions: Some(vec![
                                 Condition {
-                                    parser_type: Some(PARSER_TYPES::NOT),
-                                    parser_result: Some(vec!["not".to_string(), "Filter".to_string()]),
+                                    metadata: Metadata {
+                                        parser_type: PARSER_TYPES::NOT,
+                                        parser_result: "not Filter".to_string(),
+                                    },
                                     is_negated: Some(true),
                                     operator: None,
                                     search_identifier: Some("Filter".to_string()),
                                     nested_detections: None
                                 },
                                 Condition {
-                                    parser_type: Some(PARSER_TYPES::AND),
-                                    parser_result: Some(vec!["and".to_string(), "Selection1".to_string()]),
+                                    metadata: Metadata {
+                                        parser_type: PARSER_TYPES::AND,
+                                        parser_result: "and Selection1".to_string(),
+                                    },
                                     is_negated: Some(false),
                                     operator: Some(AND),
                                     search_identifier: Some("Selection1".to_string()),
@@ -154,7 +174,70 @@ mod tests {
                     }
                 ])
             })
-        }})))
+        }})));
+
+
+        // (Selection or (not Filter and Selection1)) and Keywords
+        let oney = ParserOutput {
+            result: Condition {
+                metadata: Metadata {
+                    parser_type: PARSER_TYPES::PARENS,
+                    parser_result: "or (not Filter and Selection1)".to_string()
+                },
+                is_negated: None,
+                operator: None,
+                search_identifier: None,
+                nested_detections: Some(Detection {
+                    operator: Some(OPERATOR::OR),
+                    conditions: Some(vec![
+                        Condition {
+                            metadata: Metadata {
+                                parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                                parser_result: "Selection".to_string()
+                            },
+                            is_negated: None,
+                            operator: None,
+                            search_identifier: Some("Selection".to_string()),
+                            nested_detections: None
+                        },
+                        Condition {
+                            metadata: Metadata {
+                                parser_type: PARSER_TYPES::OR,
+                                parser_result: "or (not Filter and Selection1)".to_string()
+                            },
+                            is_negated: Some(false),
+                            operator: Some(OPERATOR::OR),
+                            search_identifier: None,
+                            nested_detections: Some(Detection {
+                                operator: Some(AND),
+                                conditions: Some(vec![
+                                    Condition {
+                                        metadata: Metadata {
+                                            parser_type: PARSER_TYPES::NOT,
+                                            parser_result: "not Filter".to_string()
+                                        },
+                                        is_negated: Some(true),
+                                        operator: None,
+                                        search_identifier: Some("Filter".to_string()),
+                                        nested_detections: None
+                                    },
+                                    Condition { metadata: Metadata {
+                                        parser_type: PARSER_TYPES::AND,
+                                        parser_result: "and Selection1".to_string()
+                                    },
+                                        is_negated: Some(false),
+                                        operator: Some(AND),
+                                        search_identifier: Some("Selection1".to_string()),
+                                        nested_detections: None
+                                    }
+                                ])
+                            })
+                        }
+                    ])
+                })
+            }
+        };
+
     }
 
 
@@ -165,9 +248,11 @@ mod tests {
         let result = parens_parser("(Selection or not Filter) and Keywords");
         assert_eq!(result, Ok((" and Keywords",
             ParserOutput {
-                input: Condition {
-                    parser_type: Some(PARSER_TYPES::PARENS),
-                    parser_result: Some(vec!["or".to_string(), "not".to_string(), "Filter".to_string()]),
+                result: Condition {
+                    metadata: Metadata {
+                        parser_type: PARSER_TYPES::PARENS,
+                        parser_result: "or not Filter".to_string(),
+                    },
                     is_negated: None,
                     operator: None,
                     search_identifier: None,
@@ -175,15 +260,19 @@ mod tests {
                         operator: Some(OPERATOR::OR),
                         conditions: Some(vec![
                             Condition {
-                                parser_type: Some(PARSER_TYPES::SEARCH_IDENTIFIER),
-                                parser_result: Some(vec!["Selection".to_string()]),
+                                metadata: Metadata {
+                                    parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                                    parser_result: "Selection".to_string(),
+                                },
                                 is_negated: None, operator: None,
                                 search_identifier: Some("Selection".to_string()),
                                 nested_detections: None
                             },
                             Condition {
-                                parser_type: Some(PARSER_TYPES::OR),
-                                parser_result: Some(vec!["or".to_string(), "not".to_string(), "Filter".to_string()]),
+                                metadata: Metadata {
+                                    parser_type: PARSER_TYPES::OR,
+                                    parser_result: "or not Filter".to_string(),
+                                },
                                 is_negated: Some(true),
                                 operator: Some(OPERATOR::OR),
                                 search_identifier: Some("Filter".to_string()),

@@ -94,15 +94,14 @@ pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
     while !remaining_condition.is_empty() {
 
         match parser(remaining_condition) {
-            Ok((remaining, condition)) => {
-
+            Ok((remaining, parser_output)) => {
                 remaining_condition = remaining;
-                let mut condition_result = Condition::new();
 
-                match condition.parser_type.as_ref().unwrap() {
+                match parser_output.metadata.parser_type.clone() {
                     PARSER_TYPES::PARENS => {
-                        condition_result.nested_detections = condition.nested_detections.clone();
-                        detection.conditions = Some(vec![condition.input]);
+
+                        condition.nested_detections = parser_output.nested_detections.clone();
+                        detection.conditions = Some(vec![parser_output.result]);
                     },
                     PARSER_TYPES::ONE_OF_THEM => {
                         println!("ONE_OF_THEM");
@@ -117,36 +116,39 @@ pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
                         println!("ALL_OF");
                     },
                     PARSER_TYPES::NOT => {
-                        condition_result = condition.input.clone();
+                        condition = parser_output.result.clone();
 
                         let mut conditions = detection.conditions.unwrap_or(vec![]);
-                        conditions.push(condition_result);
+                        conditions.push(condition.clone());
                         detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::AND => {
-                        detection.operator = condition.operator.clone();
-                        condition_result = condition.input.clone();
+                        detection.operator = parser_output.operator.clone();
+                        condition = parser_output.result.clone();
 
                         let mut conditions = detection.conditions.unwrap();
-                        conditions.push(condition_result);
+                        conditions.push(condition.clone());
                         detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::OR => {
-                        detection.operator = condition.operator.clone();
-                        condition_result = condition.input.clone();
+                        detection.operator = parser_output.operator.clone();
+                        condition = parser_output.result.clone();
 
                         let mut conditions = detection.conditions.unwrap();
-                        conditions.push(condition_result);
+                        conditions.push(condition.clone());
                         detection.conditions = Some(conditions);
                     },
                     PARSER_TYPES::PIPE => {
-                        println!("PIPE SHOULD RETURN ERROR")
+                        println!("PIPE SHOULD RETURN ERROR FOR NOW AND CONTINUE TO NEXT RULE");
                     },
                     PARSER_TYPES::SEARCH_IDENTIFIER => {
-                        detection.conditions = Some(vec![condition.input]);
+                        detection.conditions = Some(vec![parser_output.result]);
                     },
-                    _ => println!("I DONT KNOW YET")
+                    _ => {
+                        print!("I DONT KNOW YET, ERROR MAYBE???");
+                    }
                 }
+
             }
             Err(..) => {}
         }

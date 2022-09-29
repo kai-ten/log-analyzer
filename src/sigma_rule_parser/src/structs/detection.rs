@@ -16,7 +16,7 @@ pub struct Detection {
 }
 
 impl Detection {
-    pub fn new() -> Detection {
+    pub fn init() -> Detection {
         Detection {
             operator: None,
             conditions: None,
