@@ -23,49 +23,7 @@ pub fn search_identifiers_parser(
         None,
     );
 
-    // TODO: why this different than below method, must validate error handling somehow
     value(ParserOutput { result: { condition.clone() } }, take_while(|ch| ch != ' '))(input.trim())
-
-    // let mut condition = Condition::init();
-    //
-    // let (remaining, result) = search_identifiers(input)?;
-    // let mut result_condition: String = String::from(result);
-    //
-    // let search_id_parser_result = downstream_search_id_parser(remaining.trim());
-    // match search_id_parser_result {
-    //     Ok((_, parser_output)) => {
-    //         let downstream_parser_result = parser_output.metadata.parser_result.clone();
-    //         result_condition = format!("{}{}{}", result_condition, " ", remaining.trim());
-    //
-    //         println!("{:?}", result_condition);
-    //
-    //         let metadata = Metadata::new(
-    //             PARSER_TYPES::AND,
-    //             result_condition.clone()
-    //         );
-    //
-    //         condition = Condition::new(
-    //             metadata,
-    //             Some(parser_output.is_negated.unwrap_or(false)),
-    //             Some(OPERATOR::AND),
-    //             parser_output.search_identifier.clone(),
-    //             parser_output.nested_detections.clone()
-    //         );
-    //     }
-    //     Err(_) => {}
-    // }
-    //
-    // value(ParserOutput { result: {condition.clone()}}, tag_no_case(result_condition.clone().as_str()))(input.trim())
-}
-
-// need to implement the possible parsers that may follow a search identifier - and / or
-fn downstream_search_id_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> {
-    let result = alt((
-        and_parser,
-        or_parser,
-    ))(input);
-
-    result
 }
 
 /// Returns search identifiers within a condition (take_until(" ")), and at the end of a condition (rest of string)
@@ -93,7 +51,20 @@ mod tests {
     #[test]
     fn multiple_search_identifiers() {
         let result = search_identifiers_parser("Selection and not Filter");
-        println!("{:?}", result);
+        assert_eq!(result, Ok((
+            " and not Filter",
+            ParserOutput {
+                result: Condition {
+                    metadata: Metadata {
+                        parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                        parser_result: "Selection".to_string()
+                    },
+                    is_negated: None,
+                    operator: None,
+                    search_identifier: Some("Selection".to_string()),
+                    nested_detections: None
+                }
+            })))
     }
 
     #[test]

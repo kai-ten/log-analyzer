@@ -21,15 +21,7 @@ pub fn not_parser(
     match not_parser_result {
         Ok((_, parser_output)) => {
             let downstream_parser_result = parser_output.metadata.parser_result.clone();
-
-
-            // TODO:
-            // MUST FIND WAY TO SUPPORT result_condition AS PARENS (result.trim()) OR AS A SEARCH ID (downstream_parser_result.trim())
-            // Seems like downstream_parser_result should be better at returning parens
-            // Then must apply same logic to and / or parsers
             result_condition = format!("{}{}{}", result_condition, " ", downstream_parser_result.trim());
-
-            println!("DKJSHDKJH {}", result_condition);
 
             let metadata = Metadata::new(
                 PARSER_TYPES::NOT,

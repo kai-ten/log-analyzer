@@ -1,9 +1,7 @@
-# CyberVISOR Real-time Log Analyzer
+# Cybervisor Real-time Log Analysis
 
-## Run the app
 
-- cargo run
-- RUST_BACKTRACE=1 cargo test -- --show-output
+## 
 
 ## Inspiration:
 

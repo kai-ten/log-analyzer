@@ -24,8 +24,6 @@ pub fn and_parser(
             let downstream_parser_result = parser_output.metadata.parser_result.clone();
             result_condition = format!("{}{}{}", result_condition, " ", remaining.trim());
 
-            println!("{:?}", result_condition);
-
             let metadata = Metadata::new(
                 PARSER_TYPES::AND,
                 result_condition.clone()
@@ -33,7 +31,7 @@ pub fn and_parser(
 
             condition = Condition::new(
                 metadata,
-                Some(parser_output.is_negated.unwrap_or(false)),
+                parser_output.is_negated.clone(),
                 Some(OPERATOR::AND),
                 parser_output.search_identifier.clone(),
                 parser_output.nested_detections.clone()
@@ -79,7 +77,7 @@ mod tests {
                         parser_type: PARSER_TYPES::AND,
                         parser_result: "and (filter or not selection)".to_string(),
                     },
-                    is_negated: Some(false),
+                    is_negated: None,
                     operator: Some(OPERATOR::AND),
                     search_identifier: None,
                     nested_detections: Some(Detection {
@@ -145,7 +143,7 @@ mod tests {
                         parser_type: PARSER_TYPES::AND,
                         parser_result: "and filter".to_string(),
                     },
-                    is_negated: Some(false),
+                    is_negated: None,
                     operator: Some(OPERATOR::AND),
                     search_identifier: Some("filter".to_string()),
                     nested_detections: None

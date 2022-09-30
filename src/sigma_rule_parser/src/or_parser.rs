@@ -26,15 +26,15 @@ pub fn or_parser(
 
             let metadata = Metadata::new(
                 PARSER_TYPES::OR,
-                result_condition.clone()
+                result_condition.clone(),
             );
 
             condition = Condition::new(
                 metadata,
-                Some(parser_output.is_negated.unwrap_or(false)),
+                parser_output.is_negated.clone(),
                 Some(OPERATOR::OR),
                 parser_output.search_identifier.clone(),
-                parser_output.nested_detections.clone()
+                parser_output.nested_detections.clone(),
             );
         }
         Err(err) => println!("{:?}", err)
@@ -76,7 +76,7 @@ mod tests {
                         parser_type: PARSER_TYPES::OR,
                         parser_result: "or (filter and not selection)".to_string(),
                     },
-                    is_negated: Some(false),
+                    is_negated: None,
                     operator: Some(OPERATOR::OR),
                     search_identifier: None,
                     nested_detections: Some(Detection {
