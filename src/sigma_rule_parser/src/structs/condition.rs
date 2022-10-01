@@ -75,10 +75,7 @@ impl Condition {
 }
 
 impl Metadata {
-    pub fn new(
-        parser_type: PARSER_TYPES,
-        parser_result: String,
-    ) -> Self {
+    pub fn new(parser_type: PARSER_TYPES, parser_result: String) -> Self {
         Self {
             parser_type,
             parser_result,

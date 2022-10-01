@@ -1,119 +1,86 @@
-use crate::sigma_rule::DetectionTypes;
-use crate::SigmaRule;
-use anyhow::Error;
-use log::info;
-use nom::branch::alt;
-use nom::IResult;
-use sigma_rule_parser::structs::condition::{Condition, PARSER_TYPES};
-use sigma_rule_parser::structs::detection::Detection;
-use sigma_rule_parser::sub_parsers::operator_parsers::parser;
-use std::collections::BTreeMap;
-use std::vec;
-use sigma_rule_parser::parser::parse;
+use crate::structs::condition::{Condition, PARSER_TYPES};
+use crate::structs::detection::Detection;
+use crate::sub_parsers::operator_parsers::parser;
+use std::fmt::Error;
 
-pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
-    // let Detections = Detections::new();
+/// This function is responsible for handling each Sigma rule condition that is passed to it, returning a Detection.
+/// These Detections should be collected into a vec<> for further processing of the Detection Logic.
+pub fn parse(input: &str) -> Result<Detection, Error> {
+    let mut detection = Detection::init(); // groups the conditions in the parentheses
+    let mut remaining_condition = input.clone();
 
-    let detection = Detection::init();
+    while !remaining_condition.is_empty() {
+        match parser(remaining_condition) {
+            Ok((remaining, parser_output)) => {
+                remaining_condition = remaining;
 
-    for rule in sigma_rules {
-        let rule_id = rule.id;
-        let detection = rule.detection;
-        let detectionsss = detection.keys();
-        println!("$$$$$${:?}", detectionsss); // ["condition", "filter", "selection", "selection1", "selection2"]
+                match parser_output.metadata.parser_type.clone() {
+                    PARSER_TYPES::PARENS => {
+                        let condition = parser_output.result.clone();
+                        detection.conditions = Some(vec![parser_output.result.clone()]);
+                    }
+                    PARSER_TYPES::ONE_OF_THEM => {
+                        println!("ONE_OF_THEM");
+                    }
+                    PARSER_TYPES::ALL_OF_THEM => {
+                        println!("ALL_OF_THEM");
+                    }
+                    PARSER_TYPES::ONE_OF => {
+                        println!("ONE_OF");
+                    }
+                    PARSER_TYPES::ALL_OF => {
+                        println!("ALL_OF");
+                    }
+                    PARSER_TYPES::NOT => {
+                        let condition = parser_output.result.clone();
 
-        println!("{:?}", detection);
+                        let mut conditions = detection.conditions.unwrap_or(vec![]);
+                        conditions.push(condition.clone());
+                        detection.conditions = Some(conditions);
+                    }
+                    PARSER_TYPES::AND => {
+                        detection.operator = parser_output.operator.clone();
+                        let condition = parser_output.result.clone();
 
-        let condition = match process_condition(rule_id, detection) {
-            Some(condition) => condition,
-            None => {
-                // TODO
-                // skips to the next rule in the for loop, maybe return message here instead of in process_condition
-                continue;
+                        let mut conditions = detection.conditions.unwrap();
+                        conditions.push(condition.clone());
+                        detection.conditions = Some(conditions);
+                    }
+                    PARSER_TYPES::OR => {
+                        // TODO
+                        // add check to see if detection.operator is None, OR, or AND.
+                        // When it is an operator that does not equal another operator, this must create a nested condition
+                        detection.operator = parser_output.operator.clone();
+                        let condition = parser_output.result.clone();
+
+                        let mut conditions = detection.conditions.unwrap();
+                        conditions.push(condition.clone());
+                        detection.conditions = Some(conditions);
+                    }
+                    PARSER_TYPES::PIPE => {
+                        println!("PIPE SHOULD RETURN ERROR FOR NOW AND CONTINUE TO NEXT RULE");
+                    }
+                    PARSER_TYPES::SEARCH_IDENTIFIER => {
+                        detection.conditions = Some(vec![parser_output.result]);
+                    }
+                    _ => {
+                        print!("I DONT KNOW YET, ERROR MAYBE???");
+                    }
+                }
             }
-        };
-
-        let mut detection = Detection::init();
-
-        // let mut remaining_condition = condition.as_str();
-        // while remaining_condition.is_empty() {
-        //     let ok = parse_condition(remaining_condition);
-        //     let conditionz = match ok {
-        //         Ok(wow) => {
-        //             remaining_condition = wow.0;
-        //             wow.1
-        //         }
-        //         Err(err) => {}
-        //     };
-        // }
-    }
-
-    Ok(())
-}
-
-fn process_condition(
-    rule_id: String,
-    detection: BTreeMap<String, DetectionTypes>,
-) -> Option<String> {
-    // TODO
-    // Since an Option is being returned, I am unsure if None would trigger the else or not.
-    // Must write test eventually and change to match if None doesn't trigger the else statement
-    let condition_value = if detection.contains_key("condition") {
-        let condition = detection.get("condition");
-        let condition_value = read_condition(condition).to_string();
-
-        if condition_value != "" {
-            // maybe call parse_condition here and then return a Condition struct?
-            Some(condition_value)
-        } else {
-            info!(
-                "Condition returned as empty string, this rule has been skipped - {:?}",
-                rule_id
-            );
-            None
+            Err(..) => {}
         }
-    } else {
-        info!(
-            "Detection must have a condition, this rule has been skipped - {:?}",
-            rule_id
-        );
-        None
-    };
-
-    condition_value
-}
-
-/// Parses a single condition for a detection
-pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
-    let mut detection = Detection::init();
-    detection = parse(rule_condition).unwrap();
+    }
 
     Ok(detection)
 }
 
-/// Conditions are returned by the yml processor as the Enum DetectionTypes.
-/// This method extracts the type that the value is stored in and stringifies the value.
-fn read_condition(condition: Option<&DetectionTypes>) -> &str {
-    let condition_value = match condition.unwrap() {
-        DetectionTypes::Boolean(condition) => stringify!(condition),
-        DetectionTypes::Number(condition) => stringify!(condition),
-        DetectionTypes::String(condition) => condition as &str,
-        //TODO - Sequence should be supported as defined in the spec, a list of conditions joins as OR conditionals
-        DetectionTypes::Sequence(_) => "",
-        DetectionTypes::Mapping(_) => "",
-    };
-
-    condition_value
-}
-
-fn initialize_parser(parsed_result: &str) {
-    if parsed_result.len() > 1 {}
-}
-
+/// These tests are real scenarios of conditions that have been written in Sigma rules.
+#[cfg(test)]
 mod tests {
-    use sigma_rule_parser::parser::parse;
-    use sigma_rule_parser::structs::condition::{Condition, Metadata, OPERATOR, PARSER_TYPES};
-    use sigma_rule_parser::structs::detection::Detection;
+    use crate::parser::parse;
+    use crate::structs::condition::{Condition, Metadata, OPERATOR, PARSER_TYPES};
+    use crate::structs::detection::Detection;
 
     #[test]
     fn run_parse_for_nested_parens_condition() {

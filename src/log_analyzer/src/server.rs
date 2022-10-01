@@ -1,12 +1,11 @@
-use std::collections::HashMap;
-use actix_web::{App, HttpServer, Responder, web};
 use actix_web::dev::Server;
+use actix_web::{web, App, HttpServer, Responder};
+use std::collections::HashMap;
 
 // curl -X GET \
 // -H "Content-Type: application/json" \
 // -d '{ "fname": "Angus", "lname": "Chuck"}' \
 // http://localhost:8080/v1/log-ingress
-
 
 async fn handle_log(log: web::Json<serde_json::Value>) -> impl Responder {
     println!("Raw Json 'Value': {:?}", log);
@@ -23,22 +22,18 @@ async fn handle_log(log: web::Json<serde_json::Value>) -> impl Responder {
     // Map - We have a nested set of key + values
     // Array - We have a list of values
 
-
-
     println!("Accessing: {:?}", log[0]);
     log
 }
 
-
 pub fn create_server() -> Server {
     let server = match HttpServer::new(|| {
-        App::new().service(
-            web::scope("/v1").route("/log-ingress", web::get().to(handle_log)),
-        )
+        App::new().service(web::scope("/v1").route("/log-ingress", web::get().to(handle_log)))
     })
-    .bind(("127.0.0.1", 8080)) {
+    .bind(("127.0.0.1", 8080))
+    {
         Ok(server) => server,
-        Err(_) => todo!()
+        Err(_) => todo!(),
     };
 
     server.run()

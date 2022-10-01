@@ -1,21 +1,21 @@
-use nom::{AsBytes, Compare, CompareResult, ExtendInto, FindSubstring, FindToken, InputIter, InputLength, InputTake, InputTakeAtPosition, IResult, Offset, ParseTo, Slice};
 use nom::error::{ErrorKind, ParseError};
 use nom::Err::{Error, Incomplete};
+use nom::{
+    AsBytes, Compare, CompareResult, ExtendInto, FindSubstring, FindToken, IResult, InputIter,
+    InputLength, InputTake, InputTakeAtPosition, Offset, ParseTo, Slice,
+};
 
 use std::ops::{RangeFrom, RangeTo};
 use std::str::FromStr;
 
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ParserOutput<T> {
-    pub result: T
+    pub result: T,
 }
 
 impl<T> ParserOutput<T> {
     pub fn new(result: T) -> ParserOutput<T> {
-        ParserOutput {
-            result
-        }
+        ParserOutput { result }
     }
 
     pub fn input(&self) -> &T {
@@ -99,8 +99,8 @@ where
     }
     #[inline]
     fn position<P>(&self, predicate: P) -> Option<usize>
-        where
-            P: Fn(Self::Item) -> bool,
+    where
+        P: Fn(Self::Item) -> bool,
     {
         self.result.position(predicate)
     }
@@ -117,8 +117,8 @@ impl<T: InputLength> InputLength for ParserOutput<T> {
 }
 
 impl<T> InputTake for ParserOutput<T>
-    where
-        Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>>,
+where
+    Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>>,
 {
     fn take(&self, count: usize) -> Self {
         self.slice(..count)
@@ -136,8 +136,8 @@ where
     type Item = <T as InputIter>::Item;
 
     fn split_at_position<P, E: ParseError<Self>>(&self, predicate: P) -> IResult<Self, Self, E>
-        where
-            P: Fn(Self::Item) -> bool,
+    where
+        P: Fn(Self::Item) -> bool,
     {
         match self.result.position(predicate) {
             Some(n) => Ok(self.take_split(n)),
@@ -150,8 +150,8 @@ where
         predicate: P,
         e: ErrorKind,
     ) -> IResult<Self, Self, E>
-        where
-            P: Fn(Self::Item) -> bool,
+    where
+        P: Fn(Self::Item) -> bool,
     {
         match self.result.position(predicate) {
             Some(0) => Err(Error(E::from_error_kind(self.clone(), e))),
@@ -164,8 +164,8 @@ where
         &self,
         predicate: P,
     ) -> IResult<Self, Self, E>
-        where
-            P: Fn(Self::Item) -> bool,
+    where
+        P: Fn(Self::Item) -> bool,
     {
         match self.split_at_position(predicate) {
             Err(Incomplete(_)) => Ok(self.take_split(self.input_len())),
@@ -178,8 +178,8 @@ where
         predicate: P,
         e: ErrorKind,
     ) -> IResult<Self, Self, E>
-        where
-            P: Fn(Self::Item) -> bool,
+    where
+        P: Fn(Self::Item) -> bool,
     {
         match self.result.position(predicate) {
             Some(0) => Err(Error(E::from_error_kind(self.clone(), e))),
@@ -204,7 +204,7 @@ impl<T> Offset for ParserOutput<T> {
     }
 }
 
-impl<R: FromStr,T: ParseTo<R>> ParseTo<R> for ParserOutput<T> {
+impl<R: FromStr, T: ParseTo<R>> ParseTo<R> for ParserOutput<T> {
     #[inline]
     fn parse_to(&self) -> Option<R> {
         self.result.parse_to()
@@ -212,15 +212,15 @@ impl<R: FromStr,T: ParseTo<R>> ParseTo<R> for ParserOutput<T> {
 }
 
 impl<'a, T, R> Slice<R> for ParserOutput<T>
-    where
-        T: Slice<R> + Offset + AsBytes + Slice<RangeTo<usize>>,
+where
+    T: Slice<R> + Offset + AsBytes + Slice<RangeTo<usize>>,
 {
     fn slice(&self, range: R) -> Self {
         let next_fragment = self.result.slice(range);
         let consumed_len = self.result.offset(&next_fragment);
         if consumed_len == 0 {
             return ParserOutput {
-                result: next_fragment
+                result: next_fragment,
             };
         }
 
@@ -234,9 +234,7 @@ impl<'a, T, R> Slice<R> for ParserOutput<T>
         // let next_line = self.line + number_of_lines;
 
         ParserOutput {
-            result: next_fragment
+            result: next_fragment,
         }
     }
 }
-
-

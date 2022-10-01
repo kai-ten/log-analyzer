@@ -1,2 +1,2 @@
-pub mod detection;
 pub mod condition;
+pub mod detection;

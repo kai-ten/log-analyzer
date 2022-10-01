@@ -2,32 +2,30 @@ use nom::branch::alt;
 use nom::error::Error;
 use nom::{Finish, IResult};
 
-use crate::parser_output::ParserOutput;
+use crate::sub_parsers::parser_output::ParserOutput;
 
-use crate::and_parser::and_parser;
-use crate::not_parser::not_parser;
-use crate::or_parser::or_parser;
-use crate::parens_parser::parens_parser;
-use crate::search_id_parser::search_identifiers_parser;
 use crate::structs::condition::Condition;
-
+use crate::sub_parsers::and_parser::and_parser;
+use crate::sub_parsers::not_parser::not_parser;
+use crate::sub_parsers::or_parser::or_parser;
+use crate::sub_parsers::parens_parser::parens_parser;
+use crate::sub_parsers::search_id_parser::search_identifiers_parser;
 
 /// Parser when parens is a match
 /// The below links contains a reference to the library that fixes this issue. Nom will support in v8.0
 /// https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
 pub fn parser(input: &str) -> Result<(&str, ParserOutput<Condition>), Error<&str>> {
-
     let result = alt((
         parens_parser,
         not_parser,
         and_parser,
         or_parser,
         search_identifiers_parser,
-    ))(input).finish();
+    ))(input)
+    .finish();
 
     result
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -61,5 +59,4 @@ mod tests {
     fn parser_returns_ok_response_for_all_condition_specs() {
         // write tests in this exact location
     }
-
 }

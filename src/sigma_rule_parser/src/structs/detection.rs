@@ -22,12 +22,4 @@ impl Detection {
             conditions: None,
         }
     }
-
-    // fn modify(&mut self) -> Detection {
-    //     Detection {
-    //         search_identifier,
-    //         negation,
-    //         nested_detections
-    //     }
-    // }
 }

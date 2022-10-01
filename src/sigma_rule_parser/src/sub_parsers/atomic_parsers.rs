@@ -1,7 +1,6 @@
 use nom::bytes::complete::tag_no_case;
 use nom::IResult;
 
-
 pub fn one_of_them(input: &str) -> IResult<&str, &str> {
     tag_no_case("1 of them")(input.trim())
 }
@@ -22,8 +21,6 @@ pub fn pipe(input: &str) -> IResult<&str, &str> {
     tag_no_case("|")(input.trim())
 }
 
-
-
 fn parser_str_builder(input: Option<Vec<String>>) -> String {
     input.as_ref().unwrap().join(" ")
 }
@@ -33,7 +30,6 @@ mod tests {
     use super::*;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
-
 
     // Do this stuff eventually
     ///////////////////////////////

@@ -2,10 +2,10 @@ extern crate core;
 use sigma_rule_parser;
 
 mod detection;
+mod field_mappings;
+mod server;
 mod sigma_rule;
 mod yml;
-mod server;
-mod field_mappings;
 
 use crate::detection::process_detection;
 use anyhow::Error;
@@ -25,7 +25,7 @@ use sigma_rule::SigmaRule;
 async fn main() -> std::io::Result<()> {
     // log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
     //
-    // let sigma_rules = SigmaRule::process_sigma_rules(
+    // let sigma_rules = process_sigma_rules(
     //     "config/rules/proc_access_win_mimikatz_through_winrm.yml".to_string(),
     // )?; // this should be a path
     //
