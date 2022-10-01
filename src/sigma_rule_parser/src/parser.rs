@@ -3,6 +3,11 @@ use crate::structs::detection::Detection;
 use crate::sub_parsers::operator_parsers::parser;
 use std::fmt::Error;
 
+
+// pub fn parse(rule: SigmaRule) -> Result<Detection, Error> {
+//     parse_detection_condition(detection.)
+// }
+
 /// This function is responsible for handling each Sigma rule condition that is passed to it, returning a Detection.
 /// These Detections should be collected into a vec<> for further processing of the Detection Logic.
 pub fn parse(input: &str) -> Result<Detection, Error> {
@@ -75,6 +80,11 @@ pub fn parse(input: &str) -> Result<Detection, Error> {
     Ok(detection)
 }
 
+fn parse_detection_logic() {
+
+}
+
+
 /// These tests are real scenarios of conditions that have been written in Sigma rules.
 #[cfg(test)]
 mod tests {
@@ -96,6 +106,7 @@ mod tests {
                     is_negated: None,
                     operator: None,
                     search_identifier: None,
+                    detection_logic: None,
                     nested_detections: Some(Detection {
                         operator: Some(OPERATOR::OR),
                         conditions: Some(vec![

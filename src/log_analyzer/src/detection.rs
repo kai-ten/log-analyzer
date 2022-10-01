@@ -86,7 +86,11 @@ fn process_condition(
 /// Parses a single condition for a detection
 pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
     let mut detection = Detection::init();
-    detection = parse(rule_condition).unwrap();
+    detection = parse(rule_condition).unwrap(); // rename to parse_detection_condition()
+    // create method parse_detection_logic
+    // detection.condition_logic = parse_detection_condition(); // returns current Condition struct
+    // detection.detection_logic = parse_detection_logic(); // returns the logic
+    // return the whole Detection
 
     Ok(detection)
 }

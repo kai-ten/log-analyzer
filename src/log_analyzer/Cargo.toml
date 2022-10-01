@@ -10,7 +10,8 @@ actix-web = "4.2.1"
 anyhow = "1.0.61"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
-serde_json = "1.0"
+serde_json = {version = "1.0", features = [] }
+futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
 #tokio = { version = "1.20.1", features = ["full"] }
 walkdir = "2.3.2"
 log = "0.4"

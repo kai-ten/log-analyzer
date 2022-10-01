@@ -23,3 +23,12 @@ impl Detection {
         }
     }
 }
+
+
+
+// detection_logic: DetectionLogic {
+//     fieldName: "TargetImage", // map to field mappings
+//     fieldMappingName: "$.Event.Data.EventData.TargetImage", // this gets processed on initialization
+//     modifier: None,
+//     values: Map, Vec, String
+// }
