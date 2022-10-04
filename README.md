@@ -1,7 +1,6 @@
-# Cybervisor Real-time Log Analysis
+# Cybervisor Log Analyzer
 
 
-## 
 
 ## Inspiration:
 
