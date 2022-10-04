@@ -1,22 +1,19 @@
-use crate::sigma_rule::DetectionTypes;
-use crate::SigmaRule;
 use anyhow::Error;
 use log::info;
-use nom::branch::alt;
-use nom::IResult;
+use sigma_rule_parser::parser::parse_detection_condition;
+use sigma_rule_parser::sigma_file::sigma_rule::{DetectionTypes, SigmaRule};
 use sigma_rule_parser::structs::condition::{Condition, PARSER_TYPES};
 use sigma_rule_parser::structs::detection::Detection;
-use sigma_rule_parser::sub_parsers::operator_parsers::parser;
+use sigma_rule_parser::sub_parsers::sub_parsers::parser;
 use std::collections::BTreeMap;
 use std::vec;
-use sigma_rule_parser::parser::parse;
 
 pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
-    // let Detections = Detections::new();
 
     let detection = Detection::init();
 
     for rule in sigma_rules {
+        println!("RULE: {:?}", rule);
         let rule_id = rule.id;
         let detection = rule.detection;
         let detectionsss = detection.keys();
@@ -86,11 +83,13 @@ fn process_condition(
 /// Parses a single condition for a detection
 pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
     let mut detection = Detection::init();
-    detection = parse(rule_condition).unwrap(); // rename to parse_detection_condition()
-    // create method parse_detection_logic
-    // detection.condition_logic = parse_detection_condition(); // returns current Condition struct
-    // detection.detection_logic = parse_detection_logic(); // returns the logic
-    // return the whole Detection
+    detection = parse_detection_condition(rule_condition).unwrap();   // rename to parse_detection_condition()
+                                                                            // create method parse_detection_logic
+                                                                            // detection.condition_logic = parse_detection_condition();
+                                                                            // returns current Condition struct
+                                                                            // detection.detection_logic = parse_detection_logic();
+                                                                            // returns the logic
+                                                                            // return the whole Detection
 
     Ok(detection)
 }
@@ -115,13 +114,13 @@ fn initialize_parser(parsed_result: &str) {
 }
 
 mod tests {
-    use sigma_rule_parser::parser::parse;
+    use sigma_rule_parser::parser::parse_detection_condition;
     use sigma_rule_parser::structs::condition::{Condition, Metadata, OPERATOR, PARSER_TYPES};
     use sigma_rule_parser::structs::detection::Detection;
 
     #[test]
     fn run_parse_for_nested_parens_condition() {
-        let result = parse("( (wmi_filter_to_consumer_binding and consumer_keywords) or (wmi_filter_registration) ) and not filter_scmevent");
+        let result = parse_detection_condition("( (wmi_filter_to_consumer_binding and consumer_keywords) or (wmi_filter_registration) ) and not filter_scmevent");
         assert_eq!(result, Ok(Detection {
             operator: Some(OPERATOR::AND),
             conditions: Some(vec![
@@ -213,7 +212,8 @@ mod tests {
 
     #[test]
     fn run_parse_for_parens_condition() {
-        let result = parse("Not Keywords or (Selection and not Filter) or Selection1");
+        let result =
+            parse_detection_condition("Not Keywords or (Selection and not Filter) or Selection1");
         assert_eq!(
             result,
             Ok(Detection {
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn run_parse_for_or_not() {
-        let result = parse("Selection or not Filter");
+        let result = parse_detection_condition("Selection or not Filter");
         assert_eq!(
             result,
             Ok(Detection {
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn run_parse_for_and_not() {
-        let result = parse("Selection and not Filter");
+        let result = parse_detection_condition("Selection and not Filter");
         assert_eq!(
             result,
             Ok(Detection {
@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn run_parse_for_search_id() {
-        let result = parse("Selection");
+        let result = parse_detection_condition("Selection");
         assert_eq!(
             result,
             Ok(Detection {

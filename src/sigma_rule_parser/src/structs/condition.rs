@@ -22,6 +22,15 @@ pub struct Metadata {
     pub parser_result: String,
 }
 
+/// The DetectionLogic can be a Mapping, Sequence, or String when parsed from the yml.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DetectionLogic {
+
+}
+
+// MONEY: {"condition": String("selection and not filter and keywords"), "filter": Mapping(Some({"EventID": Sequence([Number(456), Number(876)])})), "selection": Sequence([Mapping(Some({"SourceImage": String("C:\\Windows\\system32\\wsmprovhost.exe"), "TargetImage|endswith": Sequence([String("\\lsass.exe"), String("test.exe")])}))]), "selection1": Sequence([String("EVIL"), String("Service")]), "selection2": Sequence([Mapping(Some({"TargetImage|endswith": Sequence([String("\\lsass.exe"), String("test.exe")])})), Mapping(Some({"SourceImage": String("C:\\Windows\\system32\\wsmprovhost.exe")}))])}
+
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PARSER_TYPES {
     PARENS,

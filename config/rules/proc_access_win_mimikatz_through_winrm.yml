@@ -15,7 +15,7 @@ detection:
     - TargetImage|endswith:
         - '\lsass.exe'
         - 'test.exe'
-      SourceImage: 'C:\Windows\system32\wsmprovhost.exe'
+    - SourceImage: 'C:\Windows\system32\wsmprovhost.exe'
   selection1:
     - EVIL
     - Service

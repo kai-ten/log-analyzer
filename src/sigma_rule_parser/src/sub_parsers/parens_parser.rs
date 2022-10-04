@@ -4,7 +4,7 @@ use nom::IResult;
 
 use crate::structs::condition::{Condition, Metadata, PARSER_TYPES};
 use crate::structs::detection::Detection;
-use crate::sub_parsers::operator_parsers::parser;
+use crate::sub_parsers::sub_parsers::parser;
 use crate::sub_parsers::parser_output::ParserOutput;
 use crate::sub_parsers::take_until_unbalanced::take_until_unbalanced;
 

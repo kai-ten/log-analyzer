@@ -1,4 +1,3 @@
-use crate::yml::is_yml;
 use anyhow::Error;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -6,55 +5,56 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;
 use walkdir::WalkDir;
+use crate::sigma_file::yml::is_yml;
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(default)] // deny_unknown_fields in the future? currently unable to parse custom fields defined by individuals
 pub struct SigmaRule {
     #[serde(default)]
-    pub(crate) title: String,
+    pub title: String,
     #[serde(default)]
-    pub(crate) id: String,
+    pub id: String,
     #[serde(default)]
-    pub(crate) status: String,
+    pub status: String,
     #[serde(default)]
-    pub(crate) description: String,
+    pub description: String,
     #[serde(default)]
-    pub(crate) references: Vec<String>,
+    pub references: Vec<String>,
     #[serde(default)]
-    pub(crate) tags: Vec<String>,
+    pub tags: Vec<String>,
     #[serde(default)]
-    pub(crate) author: String,
+    pub author: String,
     #[serde(default)]
-    pub(crate) date: String,
+    pub date: String,
     #[serde(default)]
-    pub(crate) modified: String,
+    pub modified: String,
     #[serde(default)]
-    pub(crate) logsource: Logsource,
+    pub logsource: Logsource,
     #[serde(default)]
-    pub(crate) related: Vec<DetectionTypes>,
+    pub related: Vec<DetectionTypes>,
     #[serde(default)]
-    pub(crate) detection: BTreeMap<String, DetectionTypes>,
+    pub detection: BTreeMap<String, DetectionTypes>,
     #[serde(default)]
-    pub(crate) fields: Vec<String>,
+    pub fields: Vec<String>,
     #[serde(default)]
-    pub(crate) falsepositives: Vec<String>,
+    pub falsepositives: Vec<String>,
     #[serde(default)]
-    pub(crate) level: String,
+    pub level: String,
 }
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug)]
-struct Logsource {
+#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct Logsource {
     #[serde(default)]
-    pub(crate) category: String,
+    pub category: String,
     #[serde(default)]
-    pub(crate) product: String,
+    pub product: String,
     #[serde(default)]
-    pub(crate) service: String,
+    pub service: String,
     #[serde(default)]
-    pub(crate) definition: String,
+    pub definition: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(untagged)]
 pub enum DetectionTypes {
     Boolean(bool),
@@ -110,6 +110,36 @@ fn initial_rule_validation(rule: &SigmaRule) -> bool {
     }
 
     return true;
+}
+
+/// Conditions are returned by the yml processor as the Enum DetectionTypes.
+/// This method extracts the type that the value is stored in and stringifies the value.
+///
+/// THIS SHOULD RETURN DETECTION_LOGIC
+pub fn read_condition(condition: &DetectionTypes) -> &str {
+    let condition_value = match condition {
+        DetectionTypes::Boolean(condition) => stringify!(condition),
+        DetectionTypes::Number(condition) => stringify!(condition),
+        DetectionTypes::String(condition) => condition as &str,
+        //TODO - Sequence should be supported as defined in the spec, a list of conditions joins as OR conditionals
+        DetectionTypes::Sequence(condition) => {
+            let vec = condition.to_vec();
+            println!("{:?}", vec);
+            for okie in vec {
+                let swag = read_condition(&okie);
+                println!("WO! {:?}", swag);
+            }
+            return "";
+        },
+        DetectionTypes::Mapping(condition) => {
+            let vec = condition.as_ref().unwrap();
+            println!("{:?}", vec);
+            // let din = read_condition(vec.get());
+            return "";
+        },
+    };
+
+    condition_value
 }
 
 #[cfg(test)]
