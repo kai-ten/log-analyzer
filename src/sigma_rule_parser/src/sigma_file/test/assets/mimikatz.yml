@@ -24,6 +24,9 @@ detection:
         - '\lsass.exe'
         - 'test.exe'
     - SourceImage: 'C:\Windows\system32\wsmprovhost.exe'
+  selection3:
+    - Image|endswith: ".exe"
+    - OtherImage: "imagination.net"
   filter:
     EventID:
       - 456

@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::BufReader;
 use walkdir::WalkDir;
 use crate::sigma_file::yml::is_yml;
+use crate::structs::detection_logic::DetectionLogic;
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(default)] // deny_unknown_fields in the future? currently unable to parse custom fields defined by individuals
@@ -94,8 +95,10 @@ pub fn process_sigma_rules<'de>(rules_dir: String) -> Result<Vec<SigmaRule>, Err
     Ok(sigma_rules)
 }
 
-fn read_rule_file(file_path: &String) -> Result<SigmaRule, Error> {
-    let file = File::open(file_path)?;
+
+// TODO: Upate all consumers of read_rule_file to propagate error and skip to the next Sigma rule file
+fn read_rule_file(file_path: &str) -> Result<SigmaRule, Error> {
+    let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
     let de_yml = serde_yaml::from_reader::<BufReader<File>, SigmaRule>(reader).unwrap();
     // info!(" = {:?}", de_yml);
@@ -114,41 +117,70 @@ fn initial_rule_validation(rule: &SigmaRule) -> bool {
 
 /// Conditions are returned by the yml processor as the Enum DetectionTypes.
 /// This method extracts the type that the value is stored in and stringifies the value.
-///
-/// THIS SHOULD RETURN DETECTION_LOGIC
 pub fn read_condition(condition: &DetectionTypes) -> &str {
     let condition_value = match condition {
         DetectionTypes::Boolean(condition) => stringify!(condition),
         DetectionTypes::Number(condition) => stringify!(condition),
         DetectionTypes::String(condition) => condition as &str,
-        //TODO - Sequence should be supported as defined in the spec, a list of conditions joins as OR conditionals
-        DetectionTypes::Sequence(condition) => {
-            let vec = condition.to_vec();
-            println!("{:?}", vec);
-            for okie in vec {
-                let swag = read_condition(&okie);
-                println!("WO! {:?}", swag);
-            }
-            return "";
-        },
-        DetectionTypes::Mapping(condition) => {
-            let vec = condition.as_ref().unwrap();
-            println!("{:?}", vec);
-            // let din = read_condition(vec.get());
-            return "";
-        },
+        DetectionTypes::Sequence(_) => "",
+        DetectionTypes::Mapping(_) => "",
     };
 
     condition_value
 }
 
+
+// where does this ultimately belong
+// TODO: THIS BELONGS IN A COMPLETELY DIFFERENT LOCATION, ENTIRELY UNRELATED TO SIGMA_RULE.RS!!!!!!!!!!
+pub fn read_search_identifiers(logic: &DetectionTypes) -> DetectionLogic {
+
+    let mut detection_logic = DetectionLogic::init();
+
+    let condition_value = match logic {
+        DetectionTypes::Mapping(condition) => {
+            let vec = condition.as_ref().unwrap();
+            for (field, okie) in vec {
+                let swag = read_search_identifiers(&okie);
+                println!("m! {:?}", okie);
+            }
+            println!("Mapping: {:?}", vec);
+        },
+        //TODO - Sequence should be supported as defined in the spec, a list of conditions joins as OR conditionals
+        DetectionTypes::Sequence(condition) => {
+            let vec = condition.to_vec();
+            println!("Vector: {:?}", vec);
+            for okie in vec {
+                let swag = read_search_identifiers(&okie);
+                println!("v! {:?}", okie);
+            }
+        },
+        DetectionTypes::Boolean(condition) => {},
+        DetectionTypes::Number(condition) => {},
+        DetectionTypes::String(condition) => {},
+    };
+
+    detection_logic
+}
+
 #[cfg(test)]
 mod tests {
+    use std::env::current_dir;
+    use serde_yaml::{Mapping, Number, Sequence};
     use super::*;
+
+    // #[test]
+    // fn read_condition_sequence_type() {
+    //     let rules = process_sigma_rules("src/sigma_file/test/assets/mimikatz.yml".to_string()).unwrap();
+    //     for rule in rules {
+    //         for (search_identifier, detection) in rule.detection {
+    //             let result = read_search_identifiers(&detection);
+    //         }
+    //     }
+    // }
 
     #[test]
     fn read_rule_yml_file_and_validate_title() -> Result<(), Error> {
-        let rule = read_rule_file(&"test/assets/mimikatz.yml".to_string());
+        let rule = read_rule_file("src/sigma_file/test/assets/mimikatz.yml");
         assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
         assert_eq!(
             rule?.title, "Mimikatz through Windows Remote Management",
@@ -162,7 +194,7 @@ mod tests {
     #[test]
     fn read_rule_yml_file_handles_invalid_rule() -> Result<(), Error> {
         let rule =
-            read_rule_file(&"test/assets/invalid_rules/invalid_title.yml".to_string());
+            read_rule_file("src/sigma_file/test/assets/invalid_rules/invalid_title.yml");
         assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
         assert_eq!(rule?.title, "", "Validate title is empty string");
         Ok(())
@@ -171,7 +203,7 @@ mod tests {
     #[test]
     fn retrieve_all_sigma_yml_rules_in_dir() -> Result<(), Error> {
         let sigma_rules =
-            process_sigma_rules("test/assets/do_not_modify_folder".to_string());
+            process_sigma_rules("src/sigma_file/test/assets/do_not_modify_folder".to_string());
         assert_eq!(sigma_rules.is_ok(), true, "Sigma Rule vec is ok");
         assert_eq!(
             sigma_rules?.len(),
@@ -183,7 +215,7 @@ mod tests {
 
     #[test]
     fn valid_rule_initial_validation() -> Result<(), Error> {
-        let rule = read_rule_file(&"test/assets/mimikatz.yml".to_string());
+        let rule = read_rule_file("src/sigma_file/test/assets/mimikatz.yml");
         assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
 
         let is_valid = initial_rule_validation(&rule.unwrap());
@@ -194,7 +226,7 @@ mod tests {
     #[test]
     fn invalid_title_rule_initial_validation() -> Result<(), Error> {
         let rule =
-            read_rule_file(&"test/assets/invalid_rules/invalid_title.yml".to_string());
+            read_rule_file("src/sigma_file/test/assets/invalid_rules/invalid_title.yml");
         assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
 
         let is_invalid = initial_rule_validation(&rule.unwrap());
@@ -205,7 +237,7 @@ mod tests {
     #[test]
     fn invalid_id_rule_initial_validation() -> Result<(), Error> {
         let rule =
-            read_rule_file(&"test/assets/invalid_rules/invalid_id.yml".to_string());
+            read_rule_file("src/sigma_file/test/assets/invalid_rules/invalid_id.yml");
         assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
 
         let is_invalid = initial_rule_validation(&rule.unwrap());
@@ -216,7 +248,7 @@ mod tests {
     #[test]
     fn invalid_detection_rule_initial_validation() -> Result<(), Error> {
         let rule = read_rule_file(
-            &"test/assets/invalid_rules/invalid_detection.yml".to_string(),
+            "src/sigma_file/test/assets/invalid_rules/invalid_detection.yml",
         );
         assert_eq!(rule.is_ok(), true, "yml returns as SigmaRule struct");
 

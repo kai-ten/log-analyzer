@@ -5,14 +5,14 @@ use nom::bytes::complete::{tag_no_case, take_until, take_while};
 use nom::combinator::{rest, value};
 use nom::IResult;
 
-use crate::structs::condition::{Condition, Metadata, OPERATOR, PARSER_TYPES};
+use crate::structs::detection_condition::{DetectionCondition, Metadata, OPERATOR, PARSER_TYPES};
 use crate::sub_parsers::parser_output::ParserOutput;
 
-pub fn search_identifiers_parser(input: &str) -> IResult<&str, ParserOutput<Condition>> {
+pub fn search_identifiers_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
     let (_, result) = search_identifiers(input)?;
-    let metadata = Metadata::new(PARSER_TYPES::SEARCH_IDENTIFIER, String::from(result));
+    let metadata = Metadata::new(PARSER_TYPES::SearchIdentifier, String::from(result));
 
-    let condition = Condition::new(metadata, None, None, Some(String::from(result)), None);
+    let condition = DetectionCondition::new(metadata, None, None, Some(String::from(result)), None);
 
     value(
         ParserOutput {
@@ -49,9 +49,9 @@ mod tests {
             Ok((
                 " and not Filter",
                 ParserOutput {
-                    result: Condition {
+                    result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                            parser_type: PARSER_TYPES::SearchIdentifier,
                             parser_result: "Selection".to_string()
                         },
                         is_negated: None,
@@ -72,9 +72,9 @@ mod tests {
             Ok((
                 "",
                 ParserOutput {
-                    result: Condition {
+                    result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                            parser_type: PARSER_TYPES::SearchIdentifier,
                             parser_result: String::from("Selection"),
                         },
                         is_negated: None,
@@ -92,9 +92,9 @@ mod tests {
             Ok((
                 "",
                 ParserOutput {
-                    result: Condition {
+                    result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::SEARCH_IDENTIFIER,
+                            parser_type: PARSER_TYPES::SearchIdentifier,
                             parser_result: String::from(""),
                         },
                         is_negated: None,
