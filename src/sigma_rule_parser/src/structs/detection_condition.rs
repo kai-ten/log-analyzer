@@ -4,12 +4,13 @@ use crate::structs::detection::Detection;
 /// https://github.com/SigmaHQ/sigma/wiki/Specification#condition
 /// The Condition struct contains all outcomes that a single condition can be, to then be stored as a Detection.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Condition {
+pub struct DetectionCondition {
     pub metadata: Metadata,
     pub is_negated: Option<bool>,
-    pub operator: Option<OPERATOR>,
+    pub operator: Option<Operator>,
     pub search_identifier: Option<String>,
     pub nested_detections: Option<Detection>,
+    // pub detection_logic: Option<>
 }
 
 /// The Metadata struct helps return extra data that is useful for recursive parsing.
@@ -18,45 +19,36 @@ pub struct Condition {
 ///     returning parser_result allows us to perform nested Condition parsing by checking if that value is empty or contains a '('
 #[derive(Clone, Debug, PartialEq)]
 pub struct Metadata {
-    pub parser_type: PARSER_TYPES,
+    pub parser_type: ParserTypes,
     pub parser_result: String,
 }
 
-/// The DetectionLogic can be a Mapping, Sequence, or String when parsed from the yml.
 #[derive(Clone, Debug, PartialEq)]
-pub struct DetectionLogic {
-
-}
-
-// MONEY: {"condition": String("selection and not filter and keywords"), "filter": Mapping(Some({"EventID": Sequence([Number(456), Number(876)])})), "selection": Sequence([Mapping(Some({"SourceImage": String("C:\\Windows\\system32\\wsmprovhost.exe"), "TargetImage|endswith": Sequence([String("\\lsass.exe"), String("test.exe")])}))]), "selection1": Sequence([String("EVIL"), String("Service")]), "selection2": Sequence([Mapping(Some({"TargetImage|endswith": Sequence([String("\\lsass.exe"), String("test.exe")])})), Mapping(Some({"SourceImage": String("C:\\Windows\\system32\\wsmprovhost.exe")}))])}
-
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum PARSER_TYPES {
-    PARENS,
-    ONE_OF_THEM,
-    ALL_OF_THEM,
-    ONE_OF,
-    ALL_OF,
-    NOT,
-    AND,
-    OR,
-    PIPE,
-    SEARCH_IDENTIFIER,
-    NUNYA,
+pub enum ParserTypes {
+    Parens,
+    OneOfThem,
+    AllOfThem,
+    OneOf,
+    AllOf,
+    Not,
+    And,
+    Or,
+    Pipe,
+    SearchIdentifier,
+    Nunya,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum OPERATOR {
-    AND,
-    OR,
+pub enum Operator {
+    And,
+    Or,
 }
 
-impl Condition {
-    pub fn init() -> Condition {
-        Condition {
+impl DetectionCondition {
+    pub fn init() -> DetectionCondition {
+        DetectionCondition {
             metadata: Metadata {
-                parser_type: PARSER_TYPES::NUNYA,
+                parser_type: ParserTypes::Nunya,
                 parser_result: String::from(""),
             },
             search_identifier: None,
@@ -69,7 +61,7 @@ impl Condition {
     pub fn new(
         metadata: Metadata,
         is_negated: Option<bool>,
-        operator: Option<OPERATOR>,
+        operator: Option<Operator>,
         search_identifier: Option<String>,
         nested_detections: Option<Detection>,
     ) -> Self {
@@ -84,7 +76,7 @@ impl Condition {
 }
 
 impl Metadata {
-    pub fn new(parser_type: PARSER_TYPES, parser_result: String) -> Self {
+    pub fn new(parser_type: ParserTypes, parser_result: String) -> Self {
         Self {
             parser_type,
             parser_result,

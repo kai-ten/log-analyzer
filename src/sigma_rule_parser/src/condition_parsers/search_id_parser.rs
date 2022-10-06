@@ -1,16 +1,16 @@
-use crate::sub_parsers::and_parser::and_parser;
-use crate::sub_parsers::or_parser::or_parser;
+use crate::condition_parsers::and_parser::and_parser;
+use crate::condition_parsers::or_parser::or_parser;
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case, take_until, take_while};
 use nom::combinator::{rest, value};
 use nom::IResult;
 
-use crate::structs::detection_condition::{DetectionCondition, Metadata, OPERATOR, PARSER_TYPES};
-use crate::sub_parsers::parser_output::ParserOutput;
+use crate::structs::detection_condition::{DetectionCondition, Metadata, Operator, ParserTypes};
+use crate::condition_parsers::parser_output::ParserOutput;
 
 pub fn search_identifiers_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
     let (_, result) = search_identifiers(input)?;
-    let metadata = Metadata::new(PARSER_TYPES::SearchIdentifier, String::from(result));
+    let metadata = Metadata::new(ParserTypes::SearchIdentifier, String::from(result));
 
     let condition = DetectionCondition::new(metadata, None, None, Some(String::from(result)), None);
 
@@ -51,7 +51,7 @@ mod tests {
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::SearchIdentifier,
+                            parser_type: ParserTypes::SearchIdentifier,
                             parser_result: "Selection".to_string()
                         },
                         is_negated: None,
@@ -74,7 +74,7 @@ mod tests {
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::SearchIdentifier,
+                            parser_type: ParserTypes::SearchIdentifier,
                             parser_result: String::from("Selection"),
                         },
                         is_negated: None,
@@ -94,7 +94,7 @@ mod tests {
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::SearchIdentifier,
+                            parser_type: ParserTypes::SearchIdentifier,
                             parser_result: String::from(""),
                         },
                         is_negated: None,

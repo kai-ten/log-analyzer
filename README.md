@@ -1,5 +1,4 @@
 # Cybervisor Log Analyzer
-![APIsec](https://github.com/0x4b6169/log-analyzer/actions/workflows/apisec-scan.yml/badge.svg)
 
 
 ## Inspiration:

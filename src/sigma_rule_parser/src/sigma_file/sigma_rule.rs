@@ -132,31 +132,55 @@ pub fn read_condition(condition: &DetectionTypes) -> &str {
 
 // where does this ultimately belong
 // TODO: THIS BELONGS IN A COMPLETELY DIFFERENT LOCATION, ENTIRELY UNRELATED TO SIGMA_RULE.RS!!!!!!!!!!
-pub fn read_search_identifiers(logic: &DetectionTypes) -> DetectionLogic {
+pub fn read_search_identifiers(logic: DetectionTypes) -> DetectionLogic {
 
     let mut detection_logic = DetectionLogic::init();
 
     let condition_value = match logic {
-        DetectionTypes::Mapping(condition) => {
-            let vec = condition.as_ref().unwrap();
-            for (field, okie) in vec {
-                let swag = read_search_identifiers(&okie);
-                println!("m! {:?}", okie);
+        DetectionTypes::Mapping(sid) => {
+            let sid_logic = sid.as_ref().unwrap();
+            let mut nested_detection_logic = DetectionLogic::init();
+
+            let mut detection_field = String::new();
+
+            for (field, okie) in sid_logic.clone() {
+                detection_field = field;
+                nested_detection_logic = read_search_identifiers(okie);
             }
-            println!("Mapping: {:?}", vec);
+            // println!("nested: {:?}", nested_detection_logic);
+            // println!("Mapping: {:?}", sid_logic);
+            let mut ok = BTreeMap::new();
+            ok.insert(detection_field, nested_detection_logic);
+            detection_logic.and = Some(ok);
         },
         //TODO - Sequence should be supported as defined in the spec, a list of conditions joins as OR conditionals
-        DetectionTypes::Sequence(condition) => {
-            let vec = condition.to_vec();
-            println!("Vector: {:?}", vec);
-            for okie in vec {
-                let swag = read_search_identifiers(&okie);
-                println!("v! {:?}", okie);
+        DetectionTypes::Sequence(sid) => {
+            let sid_logic = sid.to_vec();
+            let mut nested_detection_logic = DetectionLogic::init();
+
+            let mut wow: Vec<DetectionLogic> = Vec::new();
+
+            // println!("Vector: {:?}", sid_logic);
+            for okie in sid_logic {
+                // let nested_detection_logic = read_search_identifiers(&okie);
+                detection_logic = read_search_identifiers(okie);
+                wow.push(detection_logic.clone());
             }
+
+            detection_logic.or = Some(wow);
         },
-        DetectionTypes::Boolean(condition) => {},
-        DetectionTypes::Number(condition) => {},
-        DetectionTypes::String(condition) => {},
+        DetectionTypes::Boolean(sid) => {},
+        DetectionTypes::Number(sid) => {
+            let mut nested_detection_logic = DetectionLogic::init();
+            nested_detection_logic.value = Some(sid.to_string());
+
+            return nested_detection_logic;
+        },
+        DetectionTypes::String(sid) => {
+            // let sid_logic = sid;
+            let mut nested_detection_logic = DetectionLogic::init();
+            nested_detection_logic.value = Some(sid);
+        },
     };
 
     detection_logic
@@ -168,15 +192,18 @@ mod tests {
     use serde_yaml::{Mapping, Number, Sequence};
     use super::*;
 
-    // #[test]
-    // fn read_condition_sequence_type() {
-    //     let rules = process_sigma_rules("src/sigma_file/test/assets/mimikatz.yml".to_string()).unwrap();
-    //     for rule in rules {
-    //         for (search_identifier, detection) in rule.detection {
-    //             let result = read_search_identifiers(&detection);
-    //         }
-    //     }
-    // }
+    #[test]
+    fn read_condition_sequence_type() {
+        let rules = process_sigma_rules("src/sigma_file/test/assets/mimikatz.yml".to_string()).unwrap();
+        println!("Rules: {:?}", rules);
+
+        for rule in rules {
+            for (search_identifier, detection) in rule.detection {
+                let result = read_search_identifiers(detection);
+                println!("Result: {:?}", result);
+            }
+        }
+    }
 
     #[test]
     fn read_rule_yml_file_and_validate_title() -> Result<(), Error> {

@@ -1,12 +1,12 @@
-use crate::sub_parsers::parens_parser::parens_parser;
+use crate::condition_parsers::parens_parser::parens_parser;
 use nom::branch::alt;
 use nom::bytes::complete::tag_no_case;
 use nom::combinator::value;
 use nom::IResult;
 
-use crate::structs::detection_condition::{DetectionCondition, Metadata, PARSER_TYPES};
-use crate::sub_parsers::parser_output::ParserOutput;
-use crate::sub_parsers::search_id_parser::search_identifiers_parser;
+use crate::structs::detection_condition::{DetectionCondition, Metadata, ParserTypes};
+use crate::condition_parsers::parser_output::ParserOutput;
+use crate::condition_parsers::search_id_parser::search_identifiers_parser;
 
 pub fn not_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
     let mut condition = DetectionCondition::init();
@@ -20,7 +20,7 @@ pub fn not_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>
             let downstream_parser_result = parser_output.metadata.parser_result.clone();
             result_condition = format!("{}{}{}", result_condition, " ", downstream_parser_result);
 
-            let metadata = Metadata::new(PARSER_TYPES::Not, result_condition.clone());
+            let metadata = Metadata::new(ParserTypes::Not, result_condition.clone());
 
             condition = DetectionCondition::new(
                 metadata,
@@ -58,7 +58,7 @@ fn downstream_not_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCon
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::structs::detection_condition::OPERATOR;
+    use crate::structs::detection_condition::Operator;
     use crate::structs::detection::Detection;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
@@ -73,18 +73,18 @@ mod tests {
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::Not,
+                            parser_type: ParserTypes::Not,
                             parser_result: "not (filter or not selection)".to_string(),
                         },
                         is_negated: Some(true),
                         operator: None,
                         search_identifier: None,
                         nested_detections: Some(Detection {
-                            operator: Some(OPERATOR::Or),
+                            operator: Some(Operator::Or),
                             conditions: Some(vec![
                                 DetectionCondition {
                                     metadata: Metadata {
-                                        parser_type: PARSER_TYPES::SearchIdentifier,
+                                        parser_type: ParserTypes::SearchIdentifier,
                                         parser_result: "filter".to_string()
                                     },
                                     is_negated: None,
@@ -94,11 +94,11 @@ mod tests {
                                 },
                                 DetectionCondition {
                                     metadata: Metadata {
-                                        parser_type: PARSER_TYPES::Or,
+                                        parser_type: ParserTypes::Or,
                                         parser_result: "or not selection".to_string()
                                     },
                                     is_negated: Some(true),
-                                    operator: Some(OPERATOR::Or),
+                                    operator: Some(Operator::Or),
                                     search_identifier: Some("selection".to_string()),
                                     nested_detections: None
                                 }
@@ -120,18 +120,18 @@ mod tests {
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::Not,
+                            parser_type: ParserTypes::Not,
                             parser_result: "not (filter or not selection)".to_string(),
                         },
                         is_negated: Some(true),
                         operator: None,
                         search_identifier: None,
                         nested_detections: Some(Detection {
-                            operator: Some(OPERATOR::Or),
+                            operator: Some(Operator::Or),
                             conditions: Some(vec![
                                 DetectionCondition {
                                     metadata: Metadata {
-                                        parser_type: PARSER_TYPES::SearchIdentifier,
+                                        parser_type: ParserTypes::SearchIdentifier,
                                         parser_result: "filter".to_string()
                                     },
                                     is_negated: None,
@@ -141,11 +141,11 @@ mod tests {
                                 },
                                 DetectionCondition {
                                     metadata: Metadata {
-                                        parser_type: PARSER_TYPES::Or,
+                                        parser_type: ParserTypes::Or,
                                         parser_result: "or not selection".to_string()
                                     },
                                     is_negated: Some(true),
-                                    operator: Some(OPERATOR::Or),
+                                    operator: Some(Operator::Or),
                                     search_identifier: Some("selection".to_string()),
                                     nested_detections: None
                                 }
@@ -167,7 +167,7 @@ mod tests {
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: Metadata {
-                            parser_type: PARSER_TYPES::Not,
+                            parser_type: ParserTypes::Not,
                             parser_result: "not filter".to_string(),
                         },
                         is_negated: Some(true),
