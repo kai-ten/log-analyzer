@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 pub struct DetectionLogic {
     pub and: Option<BTreeMap<String, DetectionLogic>>,
     pub or: Option<Vec<DetectionLogic>>,
-    pub key_value: Option<(String, String)>,
     pub value: Option<String>,
 }
 
@@ -15,7 +14,6 @@ impl DetectionLogic {
         DetectionLogic {
             and: None,
             or: None,
-            key_value: None,
             value: None,
         }
     }

@@ -1,55 +1,36 @@
-( Selection or (not Filter and Selection1) ) and Keywords
 
-left: `Ok((" and Keywords",
-ParserOutput { result:
-Condition {
-  metadata: Metadata {
-    parser_type: PARENS,
-    parser_result: "( Selection or (not Filter and Selection1) )"
-  },
-  is_negated: None,
-  operator: None,
-  search_identifier: None,
-  nested_detections: Some(Detection {
-    operator: Some(OR),
-    conditions: Some([
-        Condition {
-            metadata: Metadata {
-                parser_type: SEARCH_IDENTIFIER,
-                parser_result: "Selection"
-            },
-            is_negated: None,
-            operator: None,
-            search_identifier: Some("Selection"),
-            nested_detections: None
-        },
-        Condition {
-            metadata: Metadata {
-                parser_type: OR,
-                parser_result: "or (not Filter and Selection1)"
-            },
-            is_negated: Some(false),
-            operator: Some(OR),
-            search_identifier: None,
-            nested_detections: Some(Detection {
-                operator: Some(AND),
-                conditions: Some([
-                    Condition {
-                        metadata: Metadata {
-                            parser_type: NOT,
-                            parser_result: "not Filter"
-                        },
-                        is_negated: Some(true),
-                        operator: None,
-                        search_identifier: Some("Filter"),
-                        nested_detections: None
-                    },
-                    Condition {
-                        metadata: Metadata {
-                            parser_type: AND,
-                            parser_result: "and Selection1"
-                        },
-                        is_negated: Some(false),
-                        operator: Some(AND),
-                        search_identifier: Some("Selection1"),
-                        nested_detections: None }]) }) }]) }) } }))`,
+
+
+detection: {
+"condition": String("selection and not filter"),
+
+"filter": Mapping(Some({"EventID": Sequence([Number(456), Number(876)])})),
+"selection":
+    Sequence([
+        Mapping(Some({"SourceImage": String("C:\\Windows\\system32\\wsmprovhost.exe"),
+        "TargetImage|endswith": Sequence([String("\\lsass.exe"), String("test.exe")])}))]),
+"selection1": Sequence([String("EVIL"), String("Service")]),
+"selection2": Sequence([Mapping(Some({"TargetImage|endswith": Sequence([String("\\lsass.exe"), String("test.exe")])})), Mapping(Some({"SourceImage": String("C:\\Windows\\system32\\wsmprovhost.exe")}))]),
+"selection3": Sequence([Mapping(Some({"Image|endswith": String(".exe")})), Mapping(Some({"OtherImage": String("imagination.net")}))])},
+
+
+Result: DetectionLogic { and: None, or: None, value: Some("selection and not filter") }
+Result: DetectionLogic { and: Some({"EventID": DetectionLogic { and: None, or: Some([DetectionLogic { and: None, or: None, value: Some("456") }, DetectionLogic { and: None, or: None, value: Some("876") }]), value: None }}), or: None, value: None }
+Result: DetectionLogic { and: None, or: Some([DetectionLogic { and: Some({"TargetImage|endswith": DetectionLogic { and: None, or: Some([DetectionLogic { and: None, or: None, value: Some("\\lsass.exe") }, DetectionLogic { and: None, or: None, value: Some("test.exe") }]), value: None }}), or: None, value: None }]), value: None }
+Result: DetectionLogic { and: None, or: Some([DetectionLogic { and: None, or: None, value: Some("EVIL") }, DetectionLogic { and: None, or: None, value: Some("Service") }, DetectionLogic { and: None, or: None, value: Some("Swag") }]), value: None }
+Result: DetectionLogic { and: None, or: Some([DetectionLogic { and: Some({"TargetImage|endswith": DetectionLogic { and: None, or: Some([DetectionLogic { and: None, or: None, value: Some("\\lsass.exe") }, DetectionLogic { and: None, or: None, value: Some("test.exe") }]), value: None }}), or: None, value: None }, DetectionLogic { and: Some({"SourceImage": DetectionLogic { and: None, or: None, value: Some("C:\\Windows\\system32\\wsmprovhost.exe") }}), or: None, value: None }]), value: None }
+Result: DetectionLogic { and: Some({"Image|endswith": DetectionLogic { and: None, or: None, value: Some(".exe") }}), or: None, value: None }
+
+
+
+selection2:
+    - TargetImage|endswith:
+        - '\lsass.exe'
+        - 'test.exe'
+    - SourceImage: 'C:\Windows\system32\wsmprovhost.exe'
+
+DetectionLogic {
+    and: Some({"SourceImage": DetectionLogic { and: None, or: None, value: Some("C:\\Windows\\system32\\wsmprovhost.exe") }}),
+    or: Some([DetectionLogic { and: Some({"TargetImage|endswith": DetectionLogic { and: None, or: Some([DetectionLogic { and: None, or: None, value: Some("\\lsass.exe") }, DetectionLogic { and: None, or: None, value: Some("test.exe") }]), value: Some("test.exe") }}), or: None, value: None }, DetectionLogic { and: Some({"SourceImage": DetectionLogic { and: None, or: None, value: Some("C:\\Windows\\system32\\wsmprovhost.exe") }}), or: None, value: None }]),
+    value: None }
+

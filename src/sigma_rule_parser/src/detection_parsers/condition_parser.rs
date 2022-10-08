@@ -1,121 +1,91 @@
-use anyhow::Error;
-use log::info;
-use sigma_rule_parser::parser::parse_detection_condition;
-use sigma_rule_parser::sigma_file::sigma_rule::{SigmaRule, YmlTypes};
-use sigma_rule_parser::structs::detection_condition::{DetectionCondition, ParserTypes};
-use sigma_rule_parser::structs::detection::Detection;
-use sigma_rule_parser::detection_parsers::sub_parsers::parser;
-use std::collections::BTreeMap;
-use std::vec;
+use std::fmt::Error;
+use crate::detection_parsers::sub_parsers::parser;
+use crate::structs::detection::Detection;
+use crate::structs::detection_metadata::ParserTypes;
 
-pub fn process_detection(sigma_rules: Vec<SigmaRule>) -> Result<(), Error> {
+/// This function is responsible for handling each Sigma rule condition that is passed to it, returning a Detection.
+/// These Detections should be collected into a vec<> for further processing of the Detection Logic.
+pub fn parse_detection_condition(input: &str) -> Result<Detection, Error> {
+    let mut detection = Detection::init(); // groups the conditions in the parentheses
+    let mut remaining_condition = input;
 
-    let detection = Detection::init();
+    while !remaining_condition.is_empty() {
+        match parser(remaining_condition) {
+            Ok((remaining, parser_output)) => {
+                remaining_condition = remaining;
 
-    for rule in sigma_rules {
-        println!("RULE: {:?}", rule);
-        let rule_id = rule.id;
-        let detection = rule.detection;
-        let detectionsss = detection.keys();
-        println!("$$$$$${:?}", detectionsss); // ["condition", "filter", "selection", "selection1", "selection2"]
+                match parser_output.metadata.parser_type.clone() {
+                    ParserTypes::Parens => {
+                        let condition = parser_output.result.clone();
+                        detection.conditions = Some(vec![parser_output.result.clone()]);
+                    }
+                    ParserTypes::OneOfThem => {
+                        println!("ONE_OF_THEM");
+                    }
+                    ParserTypes::AllOfThem => {
+                        println!("ALL_OF_THEM");
+                    }
+                    ParserTypes::OneOf => {
+                        println!("ONE_OF");
+                    }
+                    ParserTypes::AllOf => {
+                        println!("ALL_OF");
+                    }
+                    ParserTypes::Not => {
+                        let condition = parser_output.result.clone();
 
-        println!("{:?}", detection);
+                        let mut conditions = detection.conditions.unwrap_or(vec![]);
+                        conditions.push(condition.clone());
+                        detection.conditions = Some(conditions);
+                    }
+                    ParserTypes::And => {
+                        detection.operator = parser_output.operator.clone();
+                        let condition = parser_output.result.clone();
 
-        let condition = match process_condition(rule_id, detection) {
-            Some(condition) => condition,
-            None => {
-                // TODO
-                // skips to the next rule in the for loop, maybe return message here instead of in process_condition
-                continue;
+                        let mut conditions = detection.conditions.unwrap();
+                        conditions.push(condition.clone());
+                        detection.conditions = Some(conditions);
+                    }
+                    ParserTypes::Or => {
+                        // TODO
+                        // add check to see if detection.operator is None, OR, or AND.
+                        // When it is an operator that does not equal another operator, this must create a nested condition
+                        detection.operator = parser_output.operator.clone();
+                        let condition = parser_output.result.clone();
+
+                        let mut conditions = detection.conditions.unwrap();
+                        conditions.push(condition.clone());
+                        detection.conditions = Some(conditions);
+                    }
+                    ParserTypes::Pipe => {
+                        println!("PIPE SHOULD RETURN ERROR FOR NOW AND CONTINUE TO NEXT RULE, Correlations not yet supported");
+                    }
+                    ParserTypes::SearchIdentifier => {
+                        // create detection logic here
+                        // let mut condition = parser_output.result;
+                        // condition.detection_logic = parse_detection_logic();
+                        println!("SID: {:?}", parser_output.result);
+                        detection.conditions = Some(vec![parser_output.result]);
+                    }
+                    _ => {
+                        print!("I DONT KNOW YET, ERROR MAYBE???");
+                    }
+                }
             }
-        };
-
-        let mut detection = Detection::init();
-
-        // let mut remaining_condition = condition.as_str();
-        // while remaining_condition.is_empty() {
-        //     let ok = parse_condition(remaining_condition);
-        //     let conditionz = match ok {
-        //         Ok(wow) => {
-        //             remaining_condition = wow.0;
-        //             wow.1
-        //         }
-        //         Err(err) => {}
-        //     };
-        // }
-    }
-
-    Ok(())
-}
-
-fn process_condition(
-    rule_id: String,
-    detection: BTreeMap<String, YmlTypes>,
-) -> Option<String> {
-    // TODO
-    // Since an Option is being returned, I am unsure if None would trigger the else or not.
-    // Must write test eventually and change to match if None doesn't trigger the else statement
-    let condition_value = if detection.contains_key("condition") {
-        let condition = detection.get("condition");
-        let condition_value = read_condition(condition).to_string();
-
-        if condition_value != "" {
-            // maybe call parse_condition here and then return a Condition struct?
-            Some(condition_value)
-        } else {
-            info!(
-                "Condition returned as empty string, this rule has been skipped - {:?}",
-                rule_id
-            );
-            None
+            Err(..) => {}
         }
-    } else {
-        info!(
-            "Detection must have a condition, this rule has been skipped - {:?}",
-            rule_id
-        );
-        None
-    };
-
-    condition_value
-}
-
-/// Parses a single condition for a detection
-pub fn parse_detection(rule_condition: &str) -> Result<Detection, Error> {
-    let mut detection = Detection::init();
-    detection = parse_detection_condition(rule_condition).unwrap();   // rename to parse_detection_condition()
-                                                                            // create method parse_detection_logic
-                                                                            // detection.condition_logic = parse_detection_condition();
-                                                                            // returns current Condition struct
-                                                                            // detection.detection_logic = parse_detection_logic();
-                                                                            // returns the logic
-                                                                            // return the whole Detection
+    }
 
     Ok(detection)
 }
 
-/// Conditions are returned by the yml processor as the Enum DetectionTypes.
-/// This method extracts the type that the value is stored in and stringifies the value.
-fn read_condition(condition: Option<&YmlTypes>) -> &str {
-    let condition_value = match condition.unwrap() {
-        YmlTypes::Boolean(condition) => stringify!(condition),
-        YmlTypes::Number(condition) => stringify!(condition),
-        YmlTypes::String(condition) => condition as &str,
-        YmlTypes::Sequence(_) => "",
-        YmlTypes::Mapping(_) => "",
-    };
-
-    condition_value
-}
-
-fn initialize_parser(parsed_result: &str) {
-    if parsed_result.len() > 1 {}
-}
-
+#[cfg(test)]
 mod tests {
-    use sigma_rule_parser::parser::parse_detection_condition;
-    use sigma_rule_parser::structs::detection_condition::{DetectionCondition, DetectionMetadata, Operator, ParserTypes};
-    use sigma_rule_parser::structs::detection::Detection;
+    use crate::detection_parsers::condition_parser::parse_detection_condition;
+    use crate::structs::detection::Detection;
+    use crate::structs::detection_condition::{DetectionCondition, Operator};
+    use crate::structs::detection_logic::DetectionLogic;
+    use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
 
     #[test]
     fn run_parse_for_nested_parens_condition() {
@@ -153,7 +123,8 @@ mod tests {
                                             is_negated: None,
                                             operator: None,
                                             search_identifier: Some("wmi_filter_to_consumer_binding".to_string()),
-                                            nested_detections: None
+                                            nested_detections: None,
+                                            detection_logic: DetectionLogic::init(),
                                         },
                                         DetectionCondition {
                                             metadata: DetectionMetadata {
@@ -163,10 +134,12 @@ mod tests {
                                             is_negated: None,
                                             operator: Some(Operator::And),
                                             search_identifier: Some("consumer_keywords".to_string()),
-                                            nested_detections: None
+                                            nested_detections: None,
+                                            detection_logic: DetectionLogic::init(),
                                         }
                                     ])
-                                })
+                                }),
+                                detection_logic: DetectionLogic::init(),
                             },
                             DetectionCondition {
                                 metadata: DetectionMetadata {
@@ -187,13 +160,16 @@ mod tests {
                                             is_negated: None,
                                             operator: None,
                                             search_identifier: Some("wmi_filter_registration".to_string()),
-                                            nested_detections: None
+                                            nested_detections: None,
+                                            detection_logic: DetectionLogic::init(),
                                         }
                                     ])
-                                })
+                                }),
+                                detection_logic: DetectionLogic::init(),
                             }
                         ])
-                    })
+                    }),
+                    detection_logic: DetectionLogic::init(),
                 },
                 DetectionCondition {
                     metadata: DetectionMetadata {
@@ -203,7 +179,8 @@ mod tests {
                     is_negated: Some(true),
                     operator: Some(Operator::And),
                     search_identifier: Some("filter_scmevent".to_string()),
-                    nested_detections: None
+                    nested_detections: None,
+                    detection_logic: DetectionLogic::init(),
                 }
             ])
         }))
@@ -211,8 +188,7 @@ mod tests {
 
     #[test]
     fn run_parse_for_parens_condition() {
-        let result =
-            parse_detection_condition("Not Keywords or (Selection and not Filter) or Selection1");
+        let result = parse_detection_condition("not keywords or (selection and not filter) or selection1");
         assert_eq!(
             result,
             Ok(Detection {
@@ -221,17 +197,18 @@ mod tests {
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::Not,
-                            parser_result: "Not Keywords".to_string()
+                            parser_result: "not keywords".to_string()
                         },
                         is_negated: Some(true),
                         operator: None,
-                        search_identifier: Some("Keywords".to_string()),
-                        nested_detections: None
+                        search_identifier: Some("keywords".to_string()),
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init(),
                     },
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::Or,
-                            parser_result: "or (Selection and not Filter)".to_string()
+                            parser_result: "or (selection and not filter)".to_string()
                         },
                         is_negated: None,
                         operator: Some(Operator::Or),
@@ -242,35 +219,39 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::SearchIdentifier,
-                                        parser_result: "Selection".to_string()
+                                        parser_result: "selection".to_string()
                                     },
                                     is_negated: None,
                                     operator: None,
-                                    search_identifier: Some("Selection".to_string()),
-                                    nested_detections: None
+                                    search_identifier: Some("selection".to_string()),
+                                    nested_detections: None,
+                                    detection_logic: DetectionLogic::init(),
                                 },
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::And,
-                                        parser_result: "and not Filter".to_string()
+                                        parser_result: "and not filter".to_string()
                                     },
                                     is_negated: Some(true),
                                     operator: Some(Operator::And),
-                                    search_identifier: Some("Filter".to_string()),
-                                    nested_detections: None
+                                    search_identifier: Some("filter".to_string()),
+                                    nested_detections: None,
+                                    detection_logic: DetectionLogic::init(),
                                 }
                             ])
-                        })
+                        }),
+                        detection_logic: DetectionLogic::init(),
                     },
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::Or,
-                            parser_result: "or Selection1".to_string()
+                            parser_result: "or selection1".to_string()
                         },
                         is_negated: None,
                         operator: Some(Operator::Or),
-                        search_identifier: Some("Selection1".to_string()),
-                        nested_detections: None
+                        search_identifier: Some("selection1".to_string()),
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init(),
                     }
                 ])
             })
@@ -279,7 +260,7 @@ mod tests {
 
     #[test]
     fn run_parse_for_or_not() {
-        let result = parse_detection_condition("Selection or not Filter");
+        let result = parse_detection_condition("selection or not filter");
         assert_eq!(
             result,
             Ok(Detection {
@@ -288,22 +269,24 @@ mod tests {
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
-                            parser_result: "Selection".to_string()
+                            parser_result: "selection".to_string()
                         },
                         is_negated: None,
                         operator: None,
-                        search_identifier: Some("Selection".to_string()),
-                        nested_detections: None
+                        search_identifier: Some("selection".to_string()),
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init(),
                     },
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::Or,
-                            parser_result: "or not Filter".to_string()
+                            parser_result: "or not filter".to_string()
                         },
                         is_negated: Some(true),
                         operator: Some(Operator::Or),
-                        search_identifier: Some("Filter".to_string()),
-                        nested_detections: None
+                        search_identifier: Some("filter".to_string()),
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init(),
                     }
                 ])
             })
@@ -312,7 +295,7 @@ mod tests {
 
     #[test]
     fn run_parse_for_and_not() {
-        let result = parse_detection_condition("Selection and not Filter");
+        let result = parse_detection_condition("selection and not filter");
         assert_eq!(
             result,
             Ok(Detection {
@@ -321,22 +304,24 @@ mod tests {
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
-                            parser_result: "Selection".to_string()
+                            parser_result: "selection".to_string()
                         },
                         is_negated: None,
                         operator: None,
-                        search_identifier: Some("Selection".to_string()),
-                        nested_detections: None
+                        search_identifier: Some("selection".to_string()),
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init(),
                     },
                     DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::And,
-                            parser_result: "and not Filter".to_string()
+                            parser_result: "and not filter".to_string()
                         },
                         is_negated: Some(true),
                         operator: Some(Operator::And),
-                        search_identifier: Some("Filter".to_string()),
-                        nested_detections: None
+                        search_identifier: Some("filter".to_string()),
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init(),
                     }
                 ])
             })
@@ -358,7 +343,8 @@ mod tests {
                     is_negated: None,
                     operator: None,
                     search_identifier: Some("Selection".to_string()),
-                    nested_detections: None
+                    nested_detections: None,
+                    detection_logic: DetectionLogic::init(),
                 }])
             })
         )

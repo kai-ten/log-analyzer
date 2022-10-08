@@ -1,16 +1,17 @@
-use crate::condition_parsers::and_parser::and_parser;
-use crate::condition_parsers::or_parser::or_parser;
+use crate::detection_parsers::and_parser::and_parser;
+use crate::detection_parsers::or_parser::or_parser;
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case, take_until, take_while};
 use nom::combinator::{rest, value};
 use nom::IResult;
 
-use crate::structs::detection_condition::{DetectionCondition, Metadata, Operator, ParserTypes};
-use crate::condition_parsers::parser_output::ParserOutput;
+use crate::structs::detection_condition::{DetectionCondition, Operator};
+use crate::detection_parsers::parser_output::ParserOutput;
+use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
 
 pub fn search_identifiers_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
     let (_, result) = search_identifiers(input)?;
-    let metadata = Metadata::new(ParserTypes::SearchIdentifier, String::from(result));
+    let metadata = DetectionMetadata::new(ParserTypes::SearchIdentifier, String::from(result));
 
     let condition = DetectionCondition::new(metadata, None, None, Some(String::from(result)), None);
 
@@ -39,6 +40,8 @@ fn search_identifiers(input: &str) -> IResult<&str, &str> {
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::detection_logic::DetectionLogic;
+    use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
     use super::*;
 
     #[test]
@@ -50,14 +53,15 @@ mod tests {
                 " and not Filter",
                 ParserOutput {
                     result: DetectionCondition {
-                        metadata: Metadata {
+                        metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
                             parser_result: "Selection".to_string()
                         },
                         is_negated: None,
                         operator: None,
                         search_identifier: Some("Selection".to_string()),
-                        nested_detections: None
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init()
                     }
                 }
             ))
@@ -73,14 +77,15 @@ mod tests {
                 "",
                 ParserOutput {
                     result: DetectionCondition {
-                        metadata: Metadata {
+                        metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
                             parser_result: String::from("Selection"),
                         },
                         is_negated: None,
                         operator: None,
                         search_identifier: Some("Selection".to_string()),
-                        nested_detections: None
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init()
                     }
                 }
             ))
@@ -93,14 +98,15 @@ mod tests {
                 "",
                 ParserOutput {
                     result: DetectionCondition {
-                        metadata: Metadata {
+                        metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
                             parser_result: String::from(""),
                         },
                         is_negated: None,
                         operator: None,
                         search_identifier: Some("".to_string()),
-                        nested_detections: None
+                        nested_detections: None,
+                        detection_logic: DetectionLogic::init()
                     }
                 }
             ))
