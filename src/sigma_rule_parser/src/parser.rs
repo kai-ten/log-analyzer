@@ -22,9 +22,11 @@ pub fn parse(rule: SigmaRule) -> Result<(), Error> {
 
 
     // pass in list of search_identifiers to confirm if it exists for SEARCH_IDENTIFIER match
-    let search_identifiers = raw_detection.keys();
+    let search_identifiers = raw_detection.into_keys().collect::<Vec<String>>();
     println!("sid: {:?}", search_identifiers);
-    let detection = parse_detection_condition(condition.as_str());
+
+    // TODO: add search_identifiers to the input (via tuple maybe?), then handle the value downstream in tests
+    let detection = parse_detection_condition(condition.as_str(), search_identifiers);
     println!("PARSE! {:?}", detection);
 
 

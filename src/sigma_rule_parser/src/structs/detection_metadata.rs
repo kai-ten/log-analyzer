@@ -6,6 +6,7 @@
 pub struct DetectionMetadata {
     pub parser_type: ParserTypes,
     pub parser_result: String,
+    pub search_identifiers: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -28,13 +29,15 @@ impl DetectionMetadata {
         DetectionMetadata {
             parser_type: ParserTypes::Nunya,
             parser_result: String::from(""),
+            search_identifiers: Vec::new(),
         }
     }
 
-    pub fn new(parser_type: ParserTypes, parser_result: String) -> Self {
+    pub fn new(parser_type: ParserTypes, parser_result: String, search_identifiers: Vec<String>) -> Self {
         Self {
             parser_type,
             parser_result,
+            search_identifiers,
         }
     }
 }

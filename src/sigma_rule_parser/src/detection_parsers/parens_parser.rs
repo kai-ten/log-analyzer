@@ -17,10 +17,14 @@ pub fn parens_parser(input: &str) -> IResult<&str, ParserOutput<DetectionConditi
     let mut remaining_condition = remaining;
     let mut resulting_condition = result;
 
+    let mut search_identifiers = Vec::new();
+
     while !resulting_condition.is_empty() {
         match parser(resulting_condition) {
             Ok((remaining, parser_output)) => {
                 resulting_condition = remaining;
+
+                search_identifiers = [search_identifiers, parser_output.result.metadata.search_identifiers.clone()].concat();
 
                 match parser_output.metadata.parser_type.clone() {
                     ParserTypes::Parens => {
@@ -81,6 +85,7 @@ pub fn parens_parser(input: &str) -> IResult<&str, ParserOutput<DetectionConditi
     let metadata = DetectionMetadata {
         parser_type: ParserTypes::Parens,
         parser_result,
+        search_identifiers,
     };
 
     let mut result_condition = DetectionCondition::init();
@@ -119,7 +124,8 @@ mod tests {
             result: DetectionCondition {
                 metadata: DetectionMetadata {
                     parser_type: ParserTypes::Parens,
-                    parser_result: "( (wmi_filter_to_consumer_binding and consumer_keywords) or (wmi_filter_registration) )".to_string()
+                    parser_result: "( (wmi_filter_to_consumer_binding and consumer_keywords) or (wmi_filter_registration) )".to_string(),
+                    search_identifiers: vec!["wmi_filter_to_consumer_binding".to_string(), "consumer_keywords".to_string(), "wmi_filter_registration".to_string()]
                 },
                 is_negated: None,
                 operator: None,
@@ -130,7 +136,8 @@ mod tests {
                         DetectionCondition {
                             metadata: DetectionMetadata {
                                 parser_type: ParserTypes::Parens,
-                                parser_result: "(wmi_filter_to_consumer_binding and consumer_keywords)".to_string()
+                                parser_result: "(wmi_filter_to_consumer_binding and consumer_keywords)".to_string(),
+                                search_identifiers: vec!["wmi_filter_to_consumer_binding".to_string(), "consumer_keywords".to_string()]
                             },
                             is_negated: None,
                             operator: None,
@@ -141,7 +148,8 @@ mod tests {
                                     DetectionCondition {
                                         metadata: DetectionMetadata {
                                             parser_type: ParserTypes::SearchIdentifier,
-                                            parser_result: "wmi_filter_to_consumer_binding".to_string()
+                                            parser_result: "wmi_filter_to_consumer_binding".to_string(),
+                                            search_identifiers: vec!["wmi_filter_to_consumer_binding".to_string()]
                                         },
                                         is_negated: None,
                                         operator: None,
@@ -152,7 +160,8 @@ mod tests {
                                     DetectionCondition {
                                         metadata: DetectionMetadata {
                                             parser_type: ParserTypes::And,
-                                            parser_result: "and consumer_keywords".to_string()
+                                            parser_result: "and consumer_keywords".to_string(),
+                                            search_identifiers: vec!["consumer_keywords".to_string()]
                                         },
                                         is_negated: None,
                                         operator: Some(Operator::And),
@@ -167,7 +176,8 @@ mod tests {
                         DetectionCondition {
                             metadata: DetectionMetadata {
                                 parser_type: ParserTypes::Or,
-                                parser_result: "or (wmi_filter_registration)".to_string()
+                                parser_result: "or (wmi_filter_registration)".to_string(),
+                                search_identifiers: vec!["wmi_filter_registration".to_string()]
                             },
                             is_negated: None,
                             operator: Some(Operator::Or),
@@ -178,7 +188,8 @@ mod tests {
                                     DetectionCondition {
                                         metadata: DetectionMetadata {
                                             parser_type: ParserTypes::SearchIdentifier,
-                                            parser_result: "wmi_filter_registration".to_string()
+                                            parser_result: "wmi_filter_registration".to_string(),
+                                            search_identifiers: vec!["wmi_filter_registration".to_string()]
                                         },
                                         is_negated: None,
                                         operator: None,
@@ -208,8 +219,8 @@ mod tests {
                     result: DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::Parens,
-                            parser_result: "( selection or (not filter and selection1) )"
-                                .to_string()
+                            parser_result: "( selection or (not filter and selection1) )".to_string(),
+                            search_identifiers: vec!["selection".to_string(), "filter".to_string(), "selection1".to_string()]
                         },
                         is_negated: None,
                         operator: None,
@@ -220,7 +231,8 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::SearchIdentifier,
-                                        parser_result: "selection".to_string()
+                                        parser_result: "selection".to_string(),
+                                        search_identifiers: vec!["selection".to_string()]
                                     },
                                     is_negated: None,
                                     operator: None,
@@ -231,7 +243,8 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::Or,
-                                        parser_result: "or (not filter and selection1)".to_string()
+                                        parser_result: "or (not filter and selection1)".to_string(),
+                                        search_identifiers: vec!["filter".to_string(), "selection1".to_string()]
                                     },
                                     is_negated: None,
                                     operator: Some(Operator::Or),
@@ -242,7 +255,8 @@ mod tests {
                                             DetectionCondition {
                                                 metadata: DetectionMetadata {
                                                     parser_type: ParserTypes::Not,
-                                                    parser_result: "not filter".to_string()
+                                                    parser_result: "not filter".to_string(),
+                                                    search_identifiers: vec!["filter".to_string()]
                                                 },
                                                 is_negated: Some(true),
                                                 operator: None,
@@ -253,7 +267,8 @@ mod tests {
                                             DetectionCondition {
                                                 metadata: DetectionMetadata {
                                                     parser_type: ParserTypes::And,
-                                                    parser_result: "and selection1".to_string()
+                                                    parser_result: "and selection1".to_string(),
+                                                    search_identifiers: vec!["selection1".to_string()]
                                                 },
                                                 is_negated: None,
                                                 operator: Some(And),
@@ -288,6 +303,7 @@ mod tests {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::Parens,
                             parser_result: "(selection or not filter)".to_string(),
+                            search_identifiers: vec!["selection".to_string(), "filter".to_string()]
                         },
                         is_negated: None,
                         operator: None,
@@ -299,6 +315,7 @@ mod tests {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::SearchIdentifier,
                                         parser_result: "selection".to_string(),
+                                        search_identifiers: vec!["selection".to_string()]
                                     },
                                     is_negated: None,
                                     operator: None,
@@ -310,6 +327,7 @@ mod tests {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::Or,
                                         parser_result: "or not filter".to_string(),
+                                        search_identifiers: vec!["filter".to_string()]
                                     },
                                     is_negated: Some(true),
                                     operator: Some(Operator::Or),

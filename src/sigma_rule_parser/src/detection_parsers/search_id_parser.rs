@@ -11,9 +11,20 @@ use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
 
 pub fn search_identifiers_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
     let (_, result) = search_identifiers(input)?;
-    let metadata = DetectionMetadata::new(ParserTypes::SearchIdentifier, String::from(result));
+    let metadata = DetectionMetadata::new(
+        ParserTypes::SearchIdentifier,
+        String::from(result.clone()),
+        vec![result.clone().to_string()],
+    );
 
-    let condition = DetectionCondition::new(metadata, None, None, Some(String::from(result)), None);
+    let condition = DetectionCondition::new(
+        metadata,
+        None,
+        None,
+        Some(String::from(result)),
+        None,
+
+    );
 
     value(
         ParserOutput {
@@ -46,20 +57,21 @@ mod tests {
 
     #[test]
     fn multiple_search_identifiers() {
-        let result = search_identifiers_parser("Selection and not Filter");
+        let result = search_identifiers_parser("selection and not filter");
         assert_eq!(
             result,
             Ok((
-                " and not Filter",
+                " and not filter",
                 ParserOutput {
                     result: DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
-                            parser_result: "Selection".to_string()
+                            parser_result: "selection".to_string(),
+                            search_identifiers: vec!["selection".to_string()]
                         },
                         is_negated: None,
                         operator: None,
-                        search_identifier: Some("Selection".to_string()),
+                        search_identifier: Some("selection".to_string()),
                         nested_detections: None,
                         detection_logic: DetectionLogic::init()
                     }
@@ -70,7 +82,7 @@ mod tests {
 
     #[test]
     fn search_identifier_condition() {
-        let result = search_identifiers_parser("Selection");
+        let result = search_identifiers_parser("selection");
         assert_eq!(
             result,
             Ok((
@@ -79,11 +91,12 @@ mod tests {
                     result: DetectionCondition {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
-                            parser_result: String::from("Selection"),
+                            parser_result: String::from("selection"),
+                            search_identifiers: vec!["selection".to_string()],
                         },
                         is_negated: None,
                         operator: None,
-                        search_identifier: Some("Selection".to_string()),
+                        search_identifier: Some("selection".to_string()),
                         nested_detections: None,
                         detection_logic: DetectionLogic::init()
                     }
@@ -101,6 +114,7 @@ mod tests {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::SearchIdentifier,
                             parser_result: String::from(""),
+                            search_identifiers: vec!["".to_string()]
                         },
                         is_negated: None,
                         operator: None,
@@ -115,14 +129,14 @@ mod tests {
 
     #[test]
     fn search_identifier_input() {
-        let mid_condition_parser_result = search_identifiers(" Selection and not Filter ");
+        let mid_condition_parser_result = search_identifiers(" selection and not filter ");
         assert_eq!(
             mid_condition_parser_result,
-            Ok((" and not Filter", "Selection"))
+            Ok((" and not filter", "selection"))
         );
 
-        let end_of_condition_parser_result = search_identifiers(" Events ");
-        assert_eq!(end_of_condition_parser_result, Ok(("", "Events")));
+        let end_of_condition_parser_result = search_identifiers(" events ");
+        assert_eq!(end_of_condition_parser_result, Ok(("", "events")));
 
         let empty_string_parser_result = search_identifiers("");
         assert_eq!(empty_string_parser_result, Ok(("", "")));

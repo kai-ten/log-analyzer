@@ -10,6 +10,7 @@ use crate::detection_parsers::parser_output::ParserOutput;
 use crate::detection_parsers::search_id_parser::search_identifiers_parser;
 use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
 
+
 pub fn and_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
     let mut condition = DetectionCondition::init();
 
@@ -22,7 +23,11 @@ pub fn and_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>
             let downstream_parser_result = parser_output.metadata.parser_result.clone();
             result_condition = format!("{}{}{}", result_condition, " ", downstream_parser_result);
 
-            let metadata = DetectionMetadata::new(ParserTypes::And, result_condition.clone());
+            let metadata = DetectionMetadata::new(
+                ParserTypes::And,
+                result_condition.clone(),
+                parser_output.metadata.search_identifiers.clone(),
+            );
 
             condition = DetectionCondition::new(
                 metadata,
@@ -51,6 +56,7 @@ fn downstream_and_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCon
     alt((parens_parser, not_parser, search_identifiers_parser))(input)
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -72,6 +78,7 @@ mod tests {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::And,
                             parser_result: "and (filter or not selection)".to_string(),
+                            search_identifiers: vec!["filter".to_string(), "selection".to_string()]
                         },
                         is_negated: None,
                         operator: Some(Operator::And),
@@ -82,7 +89,8 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::SearchIdentifier,
-                                        parser_result: "filter".to_string()
+                                        parser_result: "filter".to_string(),
+                                        search_identifiers: vec!["filter".to_string()]
                                     },
                                     is_negated: None,
                                     operator: None,
@@ -93,7 +101,8 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::Or,
-                                        parser_result: "or not selection".to_string()
+                                        parser_result: "or not selection".to_string(),
+                                        search_identifiers: vec!["selection".to_string()]
                                     },
                                     is_negated: Some(true),
                                     operator: Some(Operator::Or),
@@ -122,6 +131,7 @@ mod tests {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::And,
                             parser_result: "and (filter or not selection)".to_string(),
+                            search_identifiers: vec!["filter".to_string(), "selection".to_string()]
                         },
                         is_negated: None,
                         operator: Some(Operator::And),
@@ -132,7 +142,8 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::SearchIdentifier,
-                                        parser_result: "filter".to_string()
+                                        parser_result: "filter".to_string(),
+                                        search_identifiers: vec!["filter".to_string()]
                                     },
                                     is_negated: None,
                                     operator: None,
@@ -143,7 +154,8 @@ mod tests {
                                 DetectionCondition {
                                     metadata: DetectionMetadata {
                                         parser_type: ParserTypes::Or,
-                                        parser_result: "or not selection".to_string()
+                                        parser_result: "or not selection".to_string(),
+                                        search_identifiers: vec!["selection".to_string()]
                                     },
                                     is_negated: Some(true),
                                     operator: Some(Operator::Or),
@@ -173,6 +185,7 @@ mod tests {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::And,
                             parser_result: "and not filter".to_string(),
+                            search_identifiers: vec!["filter".to_string()]
                         },
                         is_negated: Some(true),
                         operator: Some(Operator::And),
@@ -198,6 +211,7 @@ mod tests {
                         metadata: DetectionMetadata {
                             parser_type: ParserTypes::And,
                             parser_result: "and filter".to_string(),
+                            search_identifiers: vec!["filter".to_string()]
                         },
                         is_negated: None,
                         operator: Some(Operator::And),
