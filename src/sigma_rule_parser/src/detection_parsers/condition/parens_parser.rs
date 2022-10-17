@@ -4,9 +4,9 @@ use nom::IResult;
 
 use crate::structs::detection_condition::DetectionCondition;
 use crate::structs::detection::Detection;
-use crate::detection_parsers::sub_parsers::parser;
-use crate::detection_parsers::parser_output::ParserOutput;
-use crate::detection_parsers::take_until_unbalanced::take_until_unbalanced;
+use crate::detection_parsers::condition::sub_parsers::parser;
+use crate::detection_parsers::condition::parser_output::ParserOutput;
+use crate::detection_parsers::condition::take_until_unbalanced::take_until_unbalanced;
 use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
 
 pub fn parens_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {
@@ -110,8 +110,8 @@ mod tests {
     use crate::structs::detection_condition::Operator::And;
     use crate::structs::detection_condition::{DetectionCondition, Operator};
     use crate::structs::detection::Detection;
-    use crate::detection_parsers::parens_parser::{parens, parens_parser};
-    use crate::detection_parsers::parser_output::ParserOutput;
+    use crate::detection_parsers::condition::parens_parser::{parens, parens_parser};
+    use crate::detection_parsers::condition::parser_output::ParserOutput;
     use nom::error::ErrorKind::Tag;
     use nom::error::{Error, ParseError};
     use crate::structs::detection_logic::DetectionLogic;

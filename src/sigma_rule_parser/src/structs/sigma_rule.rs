@@ -56,9 +56,20 @@ pub struct Logsource {
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(untagged)]
 pub enum YmlTypes {
+    Null,
     Boolean(bool),
     Number(u64),
     String(String),
     Sequence(Vec<YmlTypes>),
-    Mapping(Option<BTreeMap<String, YmlTypes>>),
+    Mapping(BTreeMap<String, YmlTypes>),
 }
+
+// pub enum Value {
+//     Null,
+//     Bool(bool),
+//     Number(Number),
+//     String(String),
+//     Sequence(Sequence),
+//     Mapping(Mapping),
+//     Tagged(Box<TaggedValue>),
+// }

@@ -1,12 +1,12 @@
-use crate::detection_parsers::and_parser::and_parser;
-use crate::detection_parsers::or_parser::or_parser;
+use crate::detection_parsers::condition::and_parser::and_parser;
+use crate::detection_parsers::condition::or_parser::or_parser;
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case, take_until, take_while};
 use nom::combinator::{rest, value};
 use nom::IResult;
 
 use crate::structs::detection_condition::{DetectionCondition, Operator};
-use crate::detection_parsers::parser_output::ParserOutput;
+use crate::detection_parsers::condition::parser_output::ParserOutput;
 use crate::structs::detection_metadata::{DetectionMetadata, ParserTypes};
 
 pub fn search_identifiers_parser(input: &str) -> IResult<&str, ParserOutput<DetectionCondition>> {

@@ -5,10 +5,11 @@ mod detection;
 // mod field_mappings;
 // mod server;
 
-use crate::detection::process_detection;
+// use crate::detection::process_detection;
 use anyhow::Error;
 use log::info;
 use log4rs;
+use sigma_rule_parser::detection_builder::build;
 use sigma_rule_parser::sigma_file::sigma_rule::process_sigma_rules;
 
 // Main should...
@@ -24,10 +25,17 @@ fn main() -> Result<(), Error> {
     log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
 
     let sigma_rules =
-        process_sigma_rules("config/rules/proc_access_win_mimikatz_through_winrm.yml".to_string())?; // this should be a path
+        process_sigma_rules("config/rules/rules".to_string())?; // this should be a path
 
     println!("{:?}", sigma_rules);
-    let nice = process_detection(sigma_rules);
+    // let nice = process_detection(sigma_rules);
+    for rule in sigma_rules {
+        // println!("{:?}", rule.title.clone());
+        match build(rule) {
+            Ok(_) => {}
+            Err(_) => continue
+        }
+    }
     Ok(())
     //
 

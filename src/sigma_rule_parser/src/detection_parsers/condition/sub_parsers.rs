@@ -2,14 +2,14 @@ use nom::branch::alt;
 use nom::error::Error;
 use nom::{Finish, IResult};
 
-use crate::detection_parsers::parser_output::ParserOutput;
+use crate::detection_parsers::condition::parser_output::ParserOutput;
 
 use crate::structs::detection_condition::DetectionCondition;
-use crate::detection_parsers::and_parser::and_parser;
-use crate::detection_parsers::not_parser::not_parser;
-use crate::detection_parsers::or_parser::or_parser;
-use crate::detection_parsers::parens_parser::parens_parser;
-use crate::detection_parsers::search_id_parser::search_identifiers_parser;
+use crate::detection_parsers::condition::and_parser::and_parser;
+use crate::detection_parsers::condition::not_parser::not_parser;
+use crate::detection_parsers::condition::or_parser::or_parser;
+use crate::detection_parsers::condition::parens_parser::parens_parser;
+use crate::detection_parsers::condition::search_id_parser::search_identifiers_parser;
 
 /// Parser when parens is a match
 /// The below links contains a reference to the library that fixes this issue. Nom will support in v8.0

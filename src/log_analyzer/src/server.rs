@@ -20,20 +20,6 @@ struct Log {
     extra: HashMap<String, Value>,
 }
 
-// fn testies() {
-//     let swag: Log = json!({
-//         "code": 200,
-//         "success": true,
-//         "payload": {
-//             "features": [
-//                 "serde",
-//                 "json"
-//             ]
-//         }
-//     });
-//
-//     println!("{:?}", swag);
-// }
 
 const MAX_SIZE: usize = 262_144;
 

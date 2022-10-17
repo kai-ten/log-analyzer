@@ -11,24 +11,13 @@ logsource:
   category: process_access
   product: windows
 detection:
-  selection:
-    - TargetImage|endswith:
-        - '\lsass.exe'
-        - 'test.exe'
-    - SourceImage: 'C:\Windows\system32\wsmprovhost.exe'
-  selection1:
-    - EVIL
-    - Service
-  selection2:
-    - TargetImage|endswith:
-        - '\lsass.exe'
-        - 'test.exe'
-    - SourceImage: 'C:\Windows\system32\wsmprovhost.exe'
   filter:
     EventID:
       - 456
       - 876
-  condition: selection and not filter
+    ComputerName:
+      - "dc1"
+      - "dc2"
 tags:
   - attack.credential_access
   - attack.execution

@@ -1,7 +1,8 @@
 use std::fmt;
 use std::fmt::Error;
 use log::{error, info};
-use crate::detection_parsers::sub_parsers::parser;
+use crate::detection_parsers::logic::logic_parser::parse_search_identifier;
+use crate::detection_parsers::condition::sub_parsers::parser;
 use crate::structs::detection::Detection;
 use crate::structs::detection_metadata::ParserTypes;
 
@@ -48,6 +49,10 @@ pub fn parse_detection_condition(condition: &str, search_identifiers: Vec<String
                         detection.conditions = Some(conditions);
                     }
                     ParserTypes::And => {
+                        // TODO:
+                        // add check to see if detection.operator is None, OR, or AND.
+                        // When it is an operator that does not equal another operator, this must create a nested condition
+
                         detection.operator = parser_output.operator.clone();
                         let condition = parser_output.result.clone();
 
@@ -56,7 +61,7 @@ pub fn parse_detection_condition(condition: &str, search_identifiers: Vec<String
                         detection.conditions = Some(conditions);
                     }
                     ParserTypes::Or => {
-                        // TODO
+                        // TODO:
                         // add check to see if detection.operator is None, OR, or AND.
                         // When it is an operator that does not equal another operator, this must create a nested condition
                         detection.operator = parser_output.operator.clone();
@@ -103,7 +108,7 @@ fn validate_conditions(search_identifiers: Vec<String>, search_identifiers_resul
 
 #[cfg(test)]
 mod tests {
-    use crate::detection_parsers::condition_parser::{parse_detection_condition, validate_conditions};
+    use crate::detection_parsers::condition::condition_parser::{parse_detection_condition, validate_conditions};
     use crate::structs::detection::Detection;
     use crate::structs::detection_condition::{DetectionCondition, Operator};
     use crate::structs::detection_logic::DetectionLogic;
@@ -114,6 +119,14 @@ mod tests {
         let search_identifiers: Vec<String> = vec!["selection".to_string(), "filter".to_string()];
         let result = parse_detection_condition("keywords and not filter", search_identifiers);
         println!("result = {:?}", result);
+    }
+
+    // TODO: Remember to add support for condition typed like this
+    #[test]
+    fn test_parens_only() {
+        let search_identifiers: Vec<String> = vec!["selection".to_string(), "filter".to_string()];
+        let result = parse_detection_condition("(selection or filter)", search_identifiers);
+        println!("{:?}", result);
     }
 
     #[test]

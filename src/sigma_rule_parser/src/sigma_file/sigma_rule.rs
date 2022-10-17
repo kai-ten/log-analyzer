@@ -39,9 +39,9 @@ pub fn process_sigma_rules<'de>(rules_dir: String) -> Result<Vec<SigmaRule>, Err
 }
 
 
-// TODO: Upate all consumers of read_rule_file to propagate error and skip to the next Sigma rule file
+// TODO: Update all consumers of read_rule_file to propagate error and skip to the next Sigma rule file
 fn read_rule_file(file_path: &str) -> Result<SigmaRule, Error> {
-    let file = File::open(file_path).unwrap();
+    let file = File::open(file_path.clone()).unwrap();
     let reader = BufReader::new(file);
     let de_yml = serde_yaml::from_reader::<BufReader<File>, SigmaRule>(reader).unwrap();
     // info!(" = {:?}", de_yml);
@@ -68,6 +68,7 @@ pub fn read_condition(condition: &YmlTypes) -> &str {
         YmlTypes::String(condition) => condition as &str,
         YmlTypes::Sequence(_) => "",
         YmlTypes::Mapping(_) => "",
+        _ => ""
     };
 
     condition_value
