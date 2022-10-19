@@ -1,13 +1,13 @@
 extern crate core;
 use sigma_rule_parser;
 
-mod detection;
+// mod detection;
 // mod field_mappings;
 // mod server;
 
 // use crate::detection::process_detection;
 use anyhow::Error;
-use log::info;
+use log::{error, info};
 use log4rs;
 use sigma_rule_parser::detection_builder::build;
 use sigma_rule_parser::sigma_file::sigma_rule::process_sigma_rules;
@@ -33,7 +33,10 @@ fn main() -> Result<(), Error> {
         // println!("{:?}", rule.title.clone());
         match build(rule) {
             Ok(_) => {}
-            Err(_) => continue
+            Err(_) => {
+                error!("Could not build rule {}", rule);
+                continue
+            }
         }
     }
     Ok(())

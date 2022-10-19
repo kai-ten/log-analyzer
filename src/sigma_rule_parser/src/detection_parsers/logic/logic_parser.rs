@@ -1,7 +1,64 @@
 use std::collections::BTreeMap;
+use std::fmt::Error;
+use crate::structs::detection::Detection;
+use crate::structs::detection_condition::{DetectionCondition, Operator};
 use crate::structs::detection_logic::DetectionLogic;
 use crate::structs::sigma_rule::YmlTypes;
 
+/// Business logic:
+/// At the root level of a Detection struct, the operator determines whether there is more to process or not.
+///     - If None, the condition is a single phrase (i.e. "selection" or "(selection and keywords)"
+///     - If Some, the condition is a chain of events
+/// The DetectionCondition struct actually forms the '''first order logic''' in the detection of a Sigma rule
+///     - The condition field is special in that it governs relationships between subsets of logic
+/// The DetectionLogic field is what creates these so-called 'subsets of logic', a.k.a. '''second order logic'''
+///     - The Search Identifier is a unique name that identifies the logic to perform on the data that is being compared to
+/// By assigning DetectionLogic within a DetectionCondition struct, the condition is able to govern the higher order relationships with the logic that must be calculated
+pub fn parse_detection_logic(parsed_detection: &mut Detection, sigma_detection: BTreeMap<String, YmlTypes>) -> Result<&Detection, Error> {
+
+    println!("0 - {:?}", parsed_detection.clone());
+    println!("1 - {:?}", sigma_detection.clone());
+
+    let mut detection_condition = DetectionCondition::init();
+
+    match parsed_detection.operator {
+        None => {
+            // check to see if nested_detection or search_id is not None
+            // TODO: Can I get rid of this for loop since there is no operator? AKA get rid of this soon.
+            for condition in parsed_detection.conditions.as_ref().unwrap() {
+                println!("Nice - {:?}", condition.clone());
+                if condition.nested_detections.is_some() {
+                    println!("ON THE WAY");
+                } else if condition.search_identifier.is_some() {
+
+                    detection_condition = condition.clone();
+
+                    // for loop of sigma_detection that has if statement and if true then assign logic to value outside of loop and break loop
+                    println!("parsed - {:?}", parsed_detection);
+                    println!("sigma - {:?}", sigma_detection);
+                    for (search_id, logic) in sigma_detection.clone() {
+                        if condition.search_identifier.as_ref().unwrap() == &search_id {
+                            println!("yay");
+                            let parsed_logic = parse_search_identifier(logic);
+                            println!("{:?}", parsed_logic);
+                            detection_condition.detection_logic = parsed_logic;
+                        } else {
+                            println!("nay");
+                        }
+                    }
+                } else {
+
+                }
+            }
+        }
+        Some(_) => {
+            // figure out order of operations to parse through possible paths recursively
+        }
+    };
+
+    parsed_detection.conditions = Some(vec![detection_condition]);
+    Ok(parsed_detection)
+}
 
 pub fn parse_search_identifier(logic: YmlTypes) -> DetectionLogic {
     let mut detection_logic = DetectionLogic::init();
